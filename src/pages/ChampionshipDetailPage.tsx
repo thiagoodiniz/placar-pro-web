@@ -43,6 +43,146 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
+// Standalone component so hooks are called at component level (Rules of Hooks)
+const TeamPicker: React.FC<{
+    value: string[];
+    onChange: (ids: string[]) => void;
+    teams: any[];
+    max: number;
+    onCreateTeam?: (name: string) => Promise<any>;
+}> = ({ value = [], onChange, teams, max, onCreateTeam }) => {
+    const [search, setSearch] = useState('');
+    const [showAdd, setShowAdd] = useState(false);
+    const [newTeamName, setNewTeamName] = useState('');
+    const [adding, setAdding] = useState(false);
+
+    const filtered = teams.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+
+    const toggle = (teamId: string) => {
+        if (value.includes(teamId)) {
+            onChange(value.filter(s => s !== teamId));
+        } else if (value.length < max) {
+            onChange([...value, teamId]);
+        }
+    };
+
+    const handleCreate = async () => {
+        if (!newTeamName.trim() || !onCreateTeam) return;
+        setAdding(true);
+        try {
+            const newTeam = await onCreateTeam(newTeamName.trim());
+            if (newTeam?.id && value.length < max) {
+                onChange([...value, newTeam.id]);
+            }
+            setNewTeamName('');
+            setShowAdd(false);
+        } finally {
+            setAdding(false);
+        }
+    };
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <Text type="secondary" style={{ fontSize: 13 }}>Toque para selecionar/remover</Text>
+                <Tag color={value.length === max ? 'green' : 'blue'} style={{ fontSize: 13, padding: '2px 10px' }}>
+                    {value.length} / {max}
+                </Tag>
+            </div>
+
+            {/* Search + New team button row */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <Input
+                    placeholder="Buscar time..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    allowClear
+                    style={{ flex: 1 }}
+                />
+                {onCreateTeam && (
+                    <Button
+                        type="dashed"
+                        icon={<PlusOutlined />}
+                        onClick={() => { setShowAdd(v => !v); setNewTeamName(''); }}
+                        style={{ whiteSpace: 'nowrap' }}
+                    >
+                        Novo
+                    </Button>
+                )}
+            </div>
+
+            {/* Inline new team input */}
+            {showAdd && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12, background: '#f6ffed', border: '1px dashed #52c41a', borderRadius: 8, padding: 10 }}>
+                    <Input
+                        autoFocus
+                        placeholder="Nome do novo time..."
+                        value={newTeamName}
+                        onChange={e => setNewTeamName(e.target.value)}
+                        onPressEnter={handleCreate}
+                        style={{ flex: 1 }}
+                    />
+                    <Button
+                        type="primary"
+                        loading={adding}
+                        disabled={!newTeamName.trim()}
+                        onClick={handleCreate}
+                    >
+                        Criar
+                    </Button>
+                </div>
+            )}
+
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 8,
+                maxHeight: '45vh',
+                overflowY: 'auto',
+            }}>
+                {filtered.map((t: any) => {
+                    const isSelected = value.includes(t.id);
+                    const isDisabled = !isSelected && value.length >= max;
+                    return (
+                        <div
+                            key={t.id}
+                            onClick={() => !isDisabled && toggle(t.id)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px 14px',
+                                borderRadius: 8,
+                                border: `2px solid ${isSelected ? '#52c41a' : '#e8e8e8'}`,
+                                background: isSelected ? '#f6ffed' : isDisabled ? '#fafafa' : '#fff',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.45 : 1,
+                                transition: 'all 0.15s',
+                                userSelect: 'none',
+                                WebkitTapHighlightColor: 'transparent' as any,
+                                minHeight: 48,
+                            }}
+                        >
+                            <Text
+                                strong={isSelected}
+                                style={{ color: isSelected ? '#389e0d' : '#262626', fontSize: 14, flex: 1, lineHeight: 1.3 }}
+                            >
+                                {t.name}
+                            </Text>
+                            {isSelected && <span style={{ color: '#52c41a', fontSize: 16, marginLeft: 6 }}>✓</span>}
+                        </div>
+                    );
+                })}
+                {filtered.length === 0 && (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 24, color: '#8c8c8c' }}>
+                        Nenhum time encontrado
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const ChampionshipDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -590,7 +730,7 @@ const ChampionshipDetailPage: React.FC = () => {
             <Row gutter={16} style={{ marginBottom: 24 }}>
                 <Col span={24}>
                     <Card size="small" title="Gestão do Campeonato">
-                        <Space wrap>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                             {championship.status === 'DRAFT' && (
                                 <Button icon={<TeamOutlined />} onClick={() => {
                                     editTeamsForm.setFieldsValue({
@@ -682,7 +822,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                     <TrophyOutlined style={{ marginRight: 8 }} /> Campeonato Finalizado
                                 </Tag>
                             )}
-                        </Space>
+                        </div>
                     </Card>
                 </Col>
             </Row>
@@ -755,16 +895,14 @@ const ChampionshipDetailPage: React.FC = () => {
                         key: 'standings',
                         label: <span><TrophyOutlined /> Classificação</span>,
                         children: (
-                            <Space direction="vertical" style={{ width: '100% ' }}>
-                                <div style={{ padding: '4px 8px', fontSize: '11px', color: '#8c8c8c', background: '#fafafa', borderRadius: 4 }}>
-                                    <Space direction="horizontal" size="small" split={<Divider type="vertical" />}>
-                                        <span><b>P</b> - Pontos</span>
-                                        <span><b>J</b> - Jogos</span>
-                                        <span><b>V</b> - Vitórias</span>
-                                        <span><b>E</b> - Empates</span>
-                                        <span><b>D</b> - Derrotas</span>
-                                        <span><b>SG</b> - Saldo de Gols</span>
-                                    </Space>
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                <div style={{ padding: '6px 10px', fontSize: '11px', color: '#8c8c8c', background: '#fafafa', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: '4px 16px' }}>
+                                    <span><b>P</b> - Pontos</span>
+                                    <span><b>J</b> - Jogos</span>
+                                    <span><b>V</b> - Vitórias</span>
+                                    <span><b>E</b> - Empates</span>
+                                    <span><b>D</b> - Derrotas</span>
+                                    <span><b>SG</b> - Saldo de Gols</span>
                                 </div>
                                 {standings.map((group: any) => (
                                     <Card key={group.groupId} title={group.groupName} size="small" styles={{ body: { padding: 0 } }}>
@@ -1190,14 +1328,23 @@ const ChampionshipDetailPage: React.FC = () => {
             </Modal>
 
             {/* Edit Teams Modal */}
-            <Modal title="Editar Times" open={isEditTeamsModalOpen} onCancel={() => setIsEditTeamsModalOpen(false)} onOk={() => editTeamsForm.submit()} maskClosable={false}>
+            <Modal
+                title="Definir Times"
+                open={isEditTeamsModalOpen}
+                onCancel={() => setIsEditTeamsModalOpen(false)}
+                onOk={() => editTeamsForm.submit()}
+                maskClosable={false}
+                width={480}
+                styles={{ body: { padding: '12px 16px' } }}
+            >
                 <Form form={editTeamsForm} layout="vertical" onFinish={handleEditTeams}>
-                    <Form.Item name="teamIds" label="Times Selecionados" extra="Digite nomes novos ou selecione existentes">
-                        <Select mode="tags" style={{ width: '100%' }} placeholder="Adicione os times">
-                            {teams.map(t => (
-                                <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>
-                            ))}
-                        </Select>
+                    <Form.Item name="teamIds">
+                        <TeamPicker
+                            teams={teams}
+                            max={championship?.teamCount || 99}
+                            value={editTeamsForm.getFieldValue('teamIds') || []}
+                            onChange={(ids) => editTeamsForm.setFieldsValue({ teamIds: ids })}
+                        />
                     </Form.Item>
                 </Form>
             </Modal>
