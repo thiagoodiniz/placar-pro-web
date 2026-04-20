@@ -1,222 +1,188 @@
-import React, { useState } from 'react';
-import { Layout, Button, Drawer, Modal, Typography, theme } from 'antd';
+import React, { createContext, useContext, useState } from 'react';
+import { Layout, Avatar, theme } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     TrophyOutlined,
     TeamOutlined,
-    MenuOutlined,
-    ReloadOutlined,
+    UserOutlined,
 } from '@ant-design/icons';
-import { mockApi } from '../../services/mockApiService';
 
 const { Content } = Layout;
-const { Text } = Typography;
 
-const SIDEBAR_BG = '#0f172a';
-const SIDEBAR_WIDTH = 220;
+// ── Page Title Context ──────────────────────────────────────────────────────
+interface PageTitleContextType {
+    title: string;
+    setTitle: (t: string) => void;
+}
 
+export const PageTitleContext = createContext<PageTitleContextType>({
+    title: 'PlacarPro',
+    setTitle: () => {},
+});
+
+export const usePageTitle = () => useContext(PageTitleContext);
+
+// ── Constants ───────────────────────────────────────────────────────────────
+const HEADER_HEIGHT = 56;
+const FOOTER_HEIGHT = 64;
+
+// ── NavItem ─────────────────────────────────────────────────────────────────
+interface NavItemProps {
+    icon: React.ReactNode;
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => {
+    const { token } = theme.useToken();
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 4px',
+                color: active ? token.colorPrimary : token.colorTextTertiary,
+                transition: 'color 0.18s',
+                WebkitTapHighlightColor: 'transparent',
+                minWidth: 0,
+            }}
+        >
+            <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
+            <span style={{
+                fontSize: 11,
+                fontWeight: active ? 700 : 400,
+                transition: 'font-weight 0.18s',
+                letterSpacing: active ? '0.01em' : 0,
+            }}>
+                {label}
+            </span>
+            {/* Active indicator dot */}
+            <span style={{
+                width: 4,
+                height: 4,
+                borderRadius: '50%',
+                background: active ? token.colorPrimary : 'transparent',
+                transition: 'background 0.18s',
+            }} />
+        </button>
+    );
+};
+
+// ── AppLayout ───────────────────────────────────────────────────────────────
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [drawerVisible, setDrawerVisible] = useState(false);
     const { token } = theme.useToken();
+    const [pageTitle, setPageTitle] = useState('Campeonatos');
 
-    const menuItems = [
+    const navItems = [
         { key: '/championships', icon: <TrophyOutlined />, label: 'Campeonatos' },
         { key: '/teams', icon: <TeamOutlined />, label: 'Times' },
     ];
 
-    const handleReset = () => {
-        Modal.confirm({
-            title: 'Reiniciar Dados',
-            content: 'Isso irá apagar todas as suas alterações e voltar para os dados iniciais. Deseja continuar?',
-            okText: 'Sim, Reiniciar',
-            cancelText: 'Cancelar',
-            okButtonProps: { danger: true },
-            onOk: () => {
-                mockApi.resetToSeed();
-                window.location.reload();
-            },
-        });
-    };
-
-    const goTo = (key: string) => {
-        navigate(key);
-        setDrawerVisible(false);
-    };
-
-    const isItemActive = (key: string) =>
+    const isActive = (key: string) =>
         location.pathname === key || (key !== '/' && location.pathname.startsWith(key + '/'));
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
-            {/* ── Desktop Sidebar ── */}
-            <div
-                className="desktop-sider"
-                style={{
-                    position: 'fixed', top: 0, left: 0, bottom: 0,
-                    width: SIDEBAR_WIDTH, background: SIDEBAR_BG,
-                    zIndex: 100, display: 'flex', flexDirection: 'column',
-                }}
-            >
-                <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                            width: 34, height: 34, borderRadius: 9, background: token.colorPrimary,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>
-                            <TrophyOutlined style={{ color: '#fff', fontSize: 16 }} />
-                        </div>
-                        <div>
-                            <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>PlacarPro</div>
-                            <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: 11 }}>Gestão Esportiva</div>
-                        </div>
-                    </div>
-                </div>
-                <div style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
-                    {menuItems.map(item => (
-                        <div
-                            key={item.key}
-                            onClick={() => goTo(item.key)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '11px 14px', marginBottom: 2, borderRadius: 10,
-                                cursor: 'pointer',
-                                background: isItemActive(item.key) ? token.colorPrimary : 'transparent',
-                                color: isItemActive(item.key) ? '#fff' : 'rgba(255,255,255,0.55)',
-                                fontWeight: isItemActive(item.key) ? 600 : 400,
-                                fontSize: 14, transition: 'background 0.15s, color 0.15s', userSelect: 'none',
-                            }}
-                        >
-                            <span style={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</span>
-                            <span>{item.label}</span>
-                        </div>
-                    ))}
-                </div>
-                <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-                    <button
-                        onClick={handleReset}
-                        style={{
-                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                            padding: '9px 12px', background: 'transparent',
-                            border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9,
-                            color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)';
-                            e.currentTarget.style.color = '#ef4444';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
-                        }}
-                    >
-                        <ReloadOutlined style={{ fontSize: 13 }} />
-                        <span>Reiniciar Dados</span>
-                    </button>
-                </div>
-            </div>
+        <PageTitleContext.Provider value={{ title: pageTitle, setTitle: setPageTitle }}>
+            <Layout style={{ minHeight: '100vh', background: token.colorBgLayout }}>
 
-            {/* ── Mobile Drawer ── */}
-            <Drawer
-                title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{
-                            width: 26, height: 26, borderRadius: 7, background: token.colorPrimary,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                            <TrophyOutlined style={{ color: '#fff', fontSize: 13 }} />
-                        </div>
-                        <Text strong style={{ fontSize: 15 }}>PlacarPro</Text>
-                    </div>
-                }
-                placement="left"
-                onClose={() => setDrawerVisible(false)}
-                open={drawerVisible}
-                styles={{ body: { padding: 0 } }}
-                width={260}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <div style={{ flex: 1, padding: '8px 0' }}>
-                        {menuItems.map(item => (
-                            <div
-                                key={item.key}
-                                onClick={() => goTo(item.key)}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 12,
-                                    padding: '13px 20px', cursor: 'pointer',
-                                    background: isItemActive(item.key) ? token.colorPrimaryBg : 'transparent',
-                                    color: isItemActive(item.key) ? token.colorPrimary : token.colorTextBase,
-                                    fontWeight: isItemActive(item.key) ? 600 : 400,
-                                    fontSize: 15,
-                                    borderRight: isItemActive(item.key) ? `3px solid ${token.colorPrimary}` : '3px solid transparent',
-                                    transition: 'all 0.15s',
-                                }}
-                            >
-                                <span style={{ fontSize: 18 }}>{item.icon}</span>
-                                <span>{item.label}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <div style={{ padding: '12px 16px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-                        <Button danger ghost icon={<ReloadOutlined />} onClick={handleReset} style={{ width: '100%' }}>
-                            Reiniciar Dados
-                        </Button>
-                    </div>
-                </div>
-            </Drawer>
-
-            {/* ── Main Area ── */}
-            <Layout className="main-layout" style={{ background: token.colorBgLayout }}>
-                {/* Mobile Header */}
+                {/* ── Header ── */}
                 <div
-                    className="mobile-header"
                     style={{
-                        background: SIDEBAR_BG, padding: '0 16px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        position: 'sticky', top: 0, zIndex: 99, height: 56, flexShrink: 0,
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: HEADER_HEIGHT,
+                        zIndex: 100,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 16px',
+                        background: '#0f172a',
+                        boxShadow: '0 1px 0 rgba(255,255,255,0.06)',
                     }}
                 >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Button
-                            type="text"
-                            icon={<MenuOutlined style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18 }} />}
-                            onClick={() => setDrawerVisible(true)}
-                            style={{ padding: 4 }}
-                        />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{
-                                width: 26, height: 26, borderRadius: 7, background: token.colorPrimary,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                                <TrophyOutlined style={{ color: '#fff', fontSize: 13 }} />
-                            </div>
-                            <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>PlacarPro</span>
-                        </div>
-                    </div>
-                    <Button
-                        type="text" size="small"
-                        icon={<ReloadOutlined />}
-                        onClick={handleReset}
-                        style={{ color: 'rgba(255,255,255,0.45)' }}
+                    {/* Page title */}
+                    <span style={{
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: 17,
+                        flex: 1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        marginRight: 12,
+                    }}>
+                        {pageTitle}
+                    </span>
+
+                    {/* Login Avatar */}
+                    <Avatar
+                        size={36}
+                        icon={<UserOutlined />}
+                        style={{
+                            background: token.colorPrimary,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            boxShadow: `0 0 0 2px rgba(255,255,255,0.15)`,
+                        }}
                     />
                 </div>
 
-                <Content style={{ padding: '24px 20px', minHeight: 'calc(100vh - 56px)' }}>
-                    {children}
+                {/* ── Content ── */}
+                <Content
+                    style={{
+                        marginTop: HEADER_HEIGHT,
+                        paddingBottom: FOOTER_HEIGHT + 16,
+                        minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
+                    }}
+                >
+                    <div style={{ padding: '20px 16px' }}>
+                        {children}
+                    </div>
                 </Content>
-            </Layout>
 
-            <style>{`
-                @media (min-width: 992px) {
-                    .mobile-header { display: none !important; }
-                    .main-layout { margin-left: ${SIDEBAR_WIDTH}px !important; }
-                }
-                @media (max-width: 991px) {
-                    .desktop-sider { display: none !important; }
-                }
-            `}</style>
-        </Layout>
+                {/* ── Bottom Navigation Footer ── */}
+                <div
+                    style={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: FOOTER_HEIGHT,
+                        zIndex: 100,
+                        display: 'flex',
+                        alignItems: 'stretch',
+                        background: token.colorBgContainer,
+                        borderTop: `1px solid ${token.colorBorderSecondary}`,
+                        boxShadow: '0 -4px 16px rgba(0,0,0,0.08)',
+                        // safe area for devices with home indicator
+                        paddingBottom: 'env(safe-area-inset-bottom)',
+                    }}
+                >
+                    {navItems.map(item => (
+                        <NavItem
+                            key={item.key}
+                            icon={item.icon}
+                            label={item.label}
+                            active={isActive(item.key)}
+                            onClick={() => navigate(item.key)}
+                        />
+                    ))}
+                </div>
+            </Layout>
+        </PageTitleContext.Provider>
     );
 };
 

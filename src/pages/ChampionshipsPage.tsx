@@ -11,12 +11,15 @@ import { useNavigate } from 'react-router-dom';
 import { Input, Radio, Avatar } from 'antd';
 import api from '../services/api';
 import ChampionshipModal from '../components/ChampionshipModal';
+import { usePageTitle } from '../components/Layout/AppLayout';
 
 const { Title, Text } = Typography;
 
 const ChampionshipsPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
+    const { setTitle } = usePageTitle();
+
     const [championships, setChampionships] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedChamp, setSelectedChamp] = useState<any>(null);
@@ -27,6 +30,7 @@ const ChampionshipsPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
     useEffect(() => {
+        setTitle('Campeonatos');
         fetchData();
     }, []);
 
@@ -97,57 +101,52 @@ const ChampionshipsPage: React.FC = () => {
     });
 
     return (
-        <div style={{ paddingBottom: 40 }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: 24,
-                flexDirection: window.innerWidth < 576 ? 'column' : 'row',
-                gap: 16
-            }}>
-                <div>
-                    <Title level={2} style={{ margin: 0 }}>Campeonatos</Title>
-                    <Text type="secondary">Crie e gerencie suas competições</Text>
-                </div>
+        <div style={{ paddingBottom: 16 }}>
+            {/* ── Action bar ── */}
+            <div style={{ marginBottom: 16 }}>
                 <Button 
                     type="primary" 
                     icon={<PlusOutlined />} 
                     onClick={openCreate}
                     size="large"
-                    style={{ borderRadius: 8, width: window.innerWidth < 576 ? '100%' : 'auto' }}
+                    block
+                    style={{ borderRadius: 10 }}
                 >
                     Novo Campeonato
                 </Button>
             </div>
 
+            {/* ── Filters (mobile-first: stacked) ── */}
             <div style={{ 
-                marginBottom: 24, 
-                display: 'flex', 
-                gap: 12, 
-                flexDirection: window.innerWidth < 576 ? 'column' : 'row',
+                marginBottom: 20,
                 background: token.colorFillAlter,
-                padding: 16,
-                borderRadius: 16,
-                border: `1px solid ${token.colorBorderSecondary}`
+                padding: '14px 14px',
+                borderRadius: 14,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
             }}>
+                {/* Search always on top */}
                 <Input
                     placeholder="Buscar campeonatos..."
                     prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    style={{ maxWidth: window.innerWidth < 576 ? '100%' : 300, borderRadius: 8 }}
+                    style={{ borderRadius: 8, width: '100%' }}
                     allowClear
                 />
+                {/* Status filter below */}
                 <Radio.Group 
                     value={statusFilter} 
                     onChange={e => setStatusFilter(e.target.value)}
                     optionType="button"
                     buttonStyle="solid"
+                    style={{ display: 'flex', width: '100%' }}
                 >
-                    <Radio.Button value="ALL" style={{ borderRadius: '8px 0 0 8px' }}>Todos</Radio.Button>
-                    <Radio.Button value="STARTED">Em Andamento</Radio.Button>
-                    <Radio.Button value="FINISHED" style={{ borderRadius: '0 8px 8px 0' }}>Finalizados</Radio.Button>
+                    <Radio.Button value="ALL" style={{ flex: 1, textAlign: 'center', borderRadius: '8px 0 0 8px' }}>Todos</Radio.Button>
+                    <Radio.Button value="STARTED" style={{ flex: 1, textAlign: 'center' }}>Em Andamento</Radio.Button>
+                    <Radio.Button value="FINISHED" style={{ flex: 1, textAlign: 'center', borderRadius: '0 8px 8px 0' }}>Finalizados</Radio.Button>
                 </Radio.Group>
             </div>
 
@@ -163,7 +162,7 @@ const ChampionshipsPage: React.FC = () => {
                         </Button>
                     </Empty>
                 ) : (
-                    <Row gutter={[20, 20]}>
+                    <Row gutter={[16, 16]}>
                         {filteredChampionships.map((champ: any) => {
                             const status = statusConfig[champ.status] || statusConfig.DRAFT;
                             const teamsFilled = champ.teams?.length || 0;
@@ -186,10 +185,10 @@ const ChampionshipsPage: React.FC = () => {
                                         }}
                                         onClick={() => navigate(`/championships/${champ.id}`)}
                                     >
-                                        <div style={{ padding: '24px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                                                <div style={{ flex: 1, paddingRight: 12 }}>
-                                                    <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, lineHeight: 1.2, color: token.colorText }}>
+                                        <div style={{ padding: '20px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                                <div style={{ flex: 1, paddingRight: 10 }}>
+                                                    <Title level={4} style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.2, color: token.colorText }}>
                                                         {champ.name}
                                                     </Title>
                                                 </div>
@@ -203,38 +202,39 @@ const ChampionshipsPage: React.FC = () => {
                                                     letterSpacing: '0.5px',
                                                     background: `${status.color}15`, 
                                                     color: status.color, 
-                                                    fontWeight: 700 
+                                                    fontWeight: 700,
+                                                    whiteSpace: 'nowrap',
                                                 }}>
                                                     {status.label}
                                                 </Tag>
                                             </div>
 
-                                            <div style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                            <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                                                 <div style={{ 
                                                     display: 'flex', 
                                                     alignItems: 'center', 
-                                                    gap: 6, 
+                                                    gap: 5, 
                                                     background: token.colorFillTertiary, 
                                                     padding: '4px 10px', 
                                                     borderRadius: 8,
                                                     fontSize: 12,
                                                     color: token.colorTextSecondary
                                                 }}>
-                                                    <TrophyOutlined style={{ fontSize: 14 }} />
+                                                    <TrophyOutlined style={{ fontSize: 13 }} />
                                                     {formatLabel[champ.format]}
                                                 </div>
                                                 
                                                 <div style={{ 
                                                     display: 'flex', 
                                                     alignItems: 'center', 
-                                                    gap: 6, 
+                                                    gap: 5, 
                                                     background: token.colorFillTertiary, 
                                                     padding: '4px 10px', 
                                                     borderRadius: 8,
                                                     fontSize: 12,
                                                     color: token.colorTextSecondary
                                                 }}>
-                                                    <TeamOutlined style={{ fontSize: 14 }} />
+                                                    <TeamOutlined style={{ fontSize: 13 }} />
                                                     {teamsFilled} / {teamsTotal} Times
                                                 </div>
                                                 
@@ -254,36 +254,36 @@ const ChampionshipsPage: React.FC = () => {
                                             {champ.status === 'FINISHED' && champ.champion ? (
                                                 <div style={{
                                                     display: 'flex', alignItems: 'center', gap: 12,
-                                                    padding: '12px 16px',
+                                                    padding: '10px 14px',
                                                     background: 'linear-gradient(135deg, rgba(250,219,20,0.15) 0%, rgba(250,219,20,0.05) 100%)',
                                                     borderRadius: 12, border: '1px solid rgba(250,219,20,0.2)',
                                                 }}>
                                                     <div style={{ position: 'relative' }}>
                                                         <Avatar 
                                                             src={<img src={championLogo} referrerPolicy="no-referrer" alt={champ.champion} />} 
-                                                            size={40} 
+                                                            size={38} 
                                                             icon={<TeamOutlined />} 
                                                             style={{ border: '2px solid #fadb14', background: '#fff' }}
                                                         />
                                                         <div style={{ 
                                                             position: 'absolute', bottom: -4, right: -4,
                                                             background: '#fadb14', 
-                                                            width: 18, height: 18, 
+                                                            width: 16, height: 16, 
                                                             borderRadius: '50%', 
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                                                             border: '2px solid #fff'
                                                         }}>
-                                                            <TrophyOutlined style={{ color: '#fff', fontSize: 10 }} />
+                                                            <TrophyOutlined style={{ color: '#fff', fontSize: 9 }} />
                                                         </div>
                                                     </div>
                                                     <div>
                                                         <Text type="secondary" style={{ fontSize: 10, display: 'block', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>Campeão</Text>
-                                                        <Text strong style={{ color: '#d4a017', fontSize: 15 }}>{champ.champion}</Text>
+                                                        <Text strong style={{ color: '#d4a017', fontSize: 14 }}>{champ.champion}</Text>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div style={{ height: 58, display: 'flex', alignItems: 'center' }}>
+                                                <div style={{ height: 52, display: 'flex', alignItems: 'center' }}>
                                                      <Text type="secondary" style={{ fontSize: 13, fontStyle: 'italic', opacity: 0.7 }}>
                                                         {champ.status === 'STARTED' ? 'Competição em progresso...' : 'Preparando início do torneio...'}
                                                      </Text>
@@ -294,7 +294,7 @@ const ChampionshipsPage: React.FC = () => {
                                         <div
                                             style={{
                                                 borderTop: `1px solid ${token.colorBorderSecondary}`,
-                                                padding: '16px 24px',
+                                                padding: '14px 20px',
                                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                                 background: token.colorFillQuaternary,
                                             }}

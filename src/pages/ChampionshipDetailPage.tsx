@@ -41,6 +41,7 @@ import {
 import api from '../services/api';
 import dayjs from 'dayjs';
 import ChampionshipModal from '../components/ChampionshipModal';
+import { usePageTitle } from '../components/Layout/AppLayout';
 
 const { Title, Text } = Typography;
 
@@ -188,6 +189,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { token } = theme.useToken();
+    const { setTitle } = usePageTitle();
 
     const [championship, setChampionship] = useState<any>(null);
     const [standings, setStandings] = useState<any[]>([]);
@@ -227,6 +229,7 @@ const ChampionshipDetailPage: React.FC = () => {
             const res = await api.get(`/championships`);
             const champ = res.data.find((c: any) => c.id === champId);
             setChampionship(champ);
+            if (champ?.name) setTitle(champ.name);
         } catch (err) { console.error(err); }
     };
 

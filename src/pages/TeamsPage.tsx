@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { usePageTitle } from '../components/Layout/AppLayout';
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -20,6 +21,7 @@ const TeamsPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
     const screens = useBreakpoint();
+    const { setTitle } = usePageTitle();
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,6 +41,7 @@ const TeamsPage: React.FC = () => {
     const [playerForm] = Form.useForm();
 
     useEffect(() => {
+        setTitle('Times');
         fetchTeams();
     }, []);
 
@@ -154,43 +157,32 @@ const TeamsPage: React.FC = () => {
     const isMobile = !screens.sm;
 
     return (
-        <div style={{ paddingBottom: 40, padding: isMobile ? '0 8px' : '0' }}>
-            <div style={{
-                marginBottom: 32,
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                justifyContent: 'space-between',
-                alignItems: isMobile ? 'stretch' : 'center',
-                gap: 16
-            }}>
-                <div>
-                    <Title level={2} style={{ margin: 0 }}>Times</Title>
-                    <Text type="secondary">Gerencie os clubes e seus elencos</Text>
-                </div>
-                <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
-                    <Input
-                        placeholder="Buscar time..."
-                        prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
-                        style={{ width: isMobile ? '100%' : 260, borderRadius: 12, height: 44 }}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        allowClear
-                    />
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        size="large"
-                        onClick={() => {
-                            setIsEditing(false);
-                            setEditingTeam(null);
-                            teamForm.resetFields();
-                            teamForm.setFieldsValue({ primaryColor: '#16a34a', secondaryColor: '#ffffff' });
-                            setIsTeamModalOpen(true);
-                        }}
-                        style={{ borderRadius: 12, height: 44 }}
-                    >
-                        Novo Time
-                    </Button>
-                </div>
+        <div style={{ paddingBottom: 16 }}>
+            {/* ── Action + Search bar ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                <Input
+                    placeholder="Buscar time..."
+                    prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+                    style={{ borderRadius: 12, height: 44 }}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    allowClear
+                />
+                <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    size="large"
+                    block
+                    onClick={() => {
+                        setIsEditing(false);
+                        setEditingTeam(null);
+                        teamForm.resetFields();
+                        teamForm.setFieldsValue({ primaryColor: '#16a34a', secondaryColor: '#ffffff' });
+                        setIsTeamModalOpen(true);
+                    }}
+                    style={{ borderRadius: 12, height: 44 }}
+                >
+                    Novo Time
+                </Button>
             </div>
 
             <Spin spinning={loading}>
