@@ -23,7 +23,6 @@ const TeamDetailPage: React.FC = () => {
     const isEditing = !!id && id !== 'new';
     const [loading, setLoading] = useState(isEditing);
     const [submitting, setSubmitting] = useState(false);
-    const [team, setTeam] = useState<any>(null);
     const [teamForm] = Form.useForm();
     const logoUrl = Form.useWatch('logoUrl', teamForm);
 
@@ -49,7 +48,6 @@ const TeamDetailPage: React.FC = () => {
             const response = await api.get('/teams');
             const foundTeam = Array.isArray(response.data) ? response.data.find((t: any) => t.id === id) : null;
             if (foundTeam) {
-                setTeam(foundTeam);
                 setPlayers(foundTeam.players || []);
                 setTitle(foundTeam.name);
                 teamForm.setFieldsValue({
