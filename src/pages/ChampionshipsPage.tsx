@@ -1,33 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Modal, Form, Input, Select, InputNumber, Space, Tag, Typography, Card, Row, Col, Progress, Empty, Radio } from 'antd';
-import { PlusOutlined, ArrowRightOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
+import { 
+    Button, Tag, Typography, Card, Row, Col, Progress, 
+    Spin, Tooltip, theme, Empty 
+} from 'antd';
+import { 
+    PlusOutlined, ArrowRightOutlined, SettingOutlined, 
+    TeamOutlined, TrophyOutlined 
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import ChampionshipModal from '../components/ChampionshipModal';
 
 const { Title, Text } = Typography;
 
 const ChampionshipsPage: React.FC = () => {
     const navigate = useNavigate();
-    const [championships, setChampionships] = useState([]);
+    const { token } = theme.useToken();
+    const [championships, setChampionships] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedChamp, setSelectedChamp] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [createForm] = Form.useForm();
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         fetchData();
     }, []);
 
     const fetchData = async () => {
+        setLoading(true);
         try {
             const champsRes = await api.get('/championships');
             setChampionships(champsRes.data);
         } catch (error) {
             console.error('Error fetching data', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleCreate = async (values: any) => {
+    const handleSave = async (values: any) => {
+        setSubmitting(true);
         try {
             const payload = { ...values, hasGoldSilver: false };
             if (values.format === 'KNOCKOUT') {
@@ -42,210 +55,194 @@ const ChampionshipsPage: React.FC = () => {
             }
 
             setIsModalOpen(false);
-            setIsEditing(false);
-            createForm.resetFields();
             fetchData();
         } catch (error) {
-            console.error('Error creating championship', error);
+            console.error('Error saving championship', error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
-    const getStatusTag = (status: string) => {
-        switch (status) {
-            case 'STARTED': return <Tag color="green">Em Andamento</Tag>;
-            case 'FINISHED': return <Tag color="blue">Finalizado</Tag>;
-            default: return <Tag color="orange">Rascunho</Tag>;
-        }
+    const statusConfig: Record<string, { label: string; color: string }> = {
+        STARTED: { label: 'Em Andamento', color: token.colorSuccess },
+        FINISHED: { label: 'Finalizado', color: '#fadb14' },
+        DRAFT: { label: 'Rascunho', color: token.colorTextSecondary },
+    };
+
+    const formatLabel: Record<string, string> = {
+        GROUPS_KNOCKOUT: 'Grupos + Mata-mata',
+        KNOCKOUT: 'Mata-mata',
+        LEAGUE: 'Liga',
+    };
+
+    const openEdit = (champ: any) => {
+        setSelectedChamp(champ);
+        setIsEditing(true);
+        setIsModalOpen(true);
+    };
+
+    const openCreate = () => {
+        setSelectedChamp(null);
+        setIsEditing(false);
+        setIsModalOpen(true);
     };
 
     return (
-        <div style={{ paddingBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <Title level={2} style={{ margin: 0 }}>Campeonatos</Title>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)} size="large" shape="round">
-                    Novo
+        <div style={{ paddingBottom: 40 }}>
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: 24,
+                flexDirection: window.innerWidth < 576 ? 'column' : 'row',
+                gap: 16
+            }}>
+                <div>
+                    <Title level={2} style={{ margin: 0 }}>Campeonatos</Title>
+                    <Text type="secondary">Crie e gerencie suas competições</Text>
+                </div>
+                <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    onClick={openCreate}
+                    size="large"
+                    style={{ borderRadius: 8, width: window.innerWidth < 576 ? '100%' : 'auto' }}
+                >
+                    Novo Campeonato
                 </Button>
             </div>
 
-            {championships.length === 0 ? (
-                <Card style={{ padding: '40px', textAlign: 'center' }}>
-                    <Empty description="Nenhum campeonato encontrado" />
-                    <Button type="primary" style={{ marginTop: 16 }} onClick={() => setIsModalOpen(true)}>
-                        Criar Primeiro Campeonato
-                    </Button>
-                </Card>
-            ) : (
-                <Row gutter={[16, 16]}>
-                    {championships.map((champ: any) => (
-                        <Col xs={24} sm={12} lg={8} key={champ.id}>
-                            <Card
-                                hoverable
-                                styles={{ body: { padding: '20px' } }}
-                                actions={[
-                                    <Button type="link" icon={<ArrowRightOutlined />} onClick={() => navigate(`/championships/${champ.id}`)}>Ver</Button>,
-                                    ...(champ.status !== 'FINISHED' ? [<Button type="link" icon={<SettingOutlined />} onClick={() => {
-                                        setSelectedChamp(champ);
-                                        setIsEditing(true);
-                                        createForm.setFieldsValue({
-                                            name: champ.name,
-                                            format: champ.format,
-                                            teamCount: champ.teamCount,
-                                            hasGoldSilver: champ.hasGoldSilver,
-                                            groupCount: champ.groupCount,
-                                            advancingCount: champ.advancingCount
-                                        });
-                                        setIsModalOpen(true);
-                                    }}>Configurar</Button>] : [])
-                                ]}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                                    <Title level={4} style={{ margin: 0 }}>{champ.name}</Title>
-                                    {getStatusTag(champ.status)}
-                                </div>
-
-                                <Space direction="vertical" style={{ width: '100%' }} size="small">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <Text type="secondary"><TeamOutlined /> Times</Text>
-                                        <Text strong>{champ.teams?.length || 0} / {champ.teamCount}</Text>
-                                    </div>
-                                    <Progress
-                                        percent={Math.round(((champ.teams?.length || 0) / champ.teamCount) * 100)}
-                                        size="small"
-                                        status={champ.status === 'STARTED' ? 'active' : champ.status === 'FINISHED' ? 'success' : 'normal'}
-                                    />
-
-                                    <div style={{ marginTop: 8 }}>
-                                        <Text type="secondary" style={{ fontSize: '12px' }}>
-                                            {champ.format === 'GROUPS_KNOCKOUT' ? 'Grupos + Mata-mata' :
-                                                champ.format === 'LEAGUE' ? 'Liga (Pontos Corridos)' : 'Mata-mata Direto'}
-                                        </Text>
-                                    </div>
-
-                                    {champ.status === 'FINISHED' && champ.champion && (
-                                        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <span style={{ fontSize: '16px' }}>🏆</span>
-                                            <Text strong style={{ color: '#faad14' }}>{champ.champion}</Text>
-                                        </div>
-                                    )}
-                                </Space>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
-            )}
-
-            <Modal
-                title={isEditing ? "Editar Campeonato" : "Novo Campeonato"}
-                open={isModalOpen}
-                onCancel={() => { setIsModalOpen(false); setIsEditing(false); createForm.resetFields(); }}
-                onOk={() => createForm.submit()}
-                width={500}
-            >
-                <Form form={createForm} layout="vertical" onFinish={handleCreate} initialValues={{ format: 'GROUPS_KNOCKOUT', teamCount: 8, groupCount: 2, advancingCount: 2 }}>
-                    <Form.Item name="name" label="Nome do Campeonato" rules={[{ required: true, message: 'Digite o nome' }]}>
-                        <Input placeholder="Ex: Copa Interbairros 2024" />
-                    </Form.Item>
-
-                    <Form.Item name="format" label="Formato">
-                        <Select options={[
-                            { label: 'Grupos + Mata-mata', value: 'GROUPS_KNOCKOUT' },
-                            { label: 'Mata-mata Direto', value: 'KNOCKOUT' },
-                            { label: 'Liga (Pontos Corridos)', value: 'LEAGUE' },
-                        ]} />
-                    </Form.Item>
-
-                    <Form.Item
-                        noStyle
-                        shouldUpdate={(prev, curr) => prev.format !== curr.format || prev.teamCount !== curr.teamCount || prev.groupCount !== curr.groupCount}
+            <Spin spinning={loading}>
+                {!loading && championships.length === 0 ? (
+                    <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="Nenhum campeonato ainda"
+                        style={{ padding: '64px 0' }}
                     >
-                        {({ getFieldValue }) => {
-                            const format = getFieldValue('format');
-                            const teamCount = getFieldValue('teamCount') || 0;
-                            const groupCount = getFieldValue('groupCount') || 2;
-
+                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                            Criar Primeiro Campeonato
+                        </Button>
+                    </Empty>
+                ) : (
+                    <Row gutter={[20, 20]}>
+                        {championships.map((champ: any) => {
+                            const status = statusConfig[champ.status] || statusConfig.DRAFT;
+                            const teamsFilled = champ.teams?.length || 0;
+                            const teamsTotal = champ.teamCount || 1;
+                            const pct = Math.round((teamsFilled / teamsTotal) * 100);
                             return (
-                                <>
-                                    <Form.Item
-                                        name="teamCount"
-                                        label="Quantidade de Times"
-                                        rules={[
-                                            { required: true },
-                                            { type: 'number', min: format === 'KNOCKOUT' ? 2 : 3, message: `Mínimo de ${format === 'KNOCKOUT' ? 2 : 3} times` }
-                                        ]}
+                                <Col xs={24} sm={12} lg={8} key={champ.id}>
+                                    <Card
+                                        hoverable
+                                        styles={{ body: { padding: 0 } }}
+                                        style={{ 
+                                            overflow: 'hidden', 
+                                            borderRadius: 16,
+                                            border: `1px solid ${token.colorBorderSecondary}`
+                                        }}
+                                        onClick={() => navigate(`/championships/${champ.id}`)}
                                     >
-                                        <InputNumber min={2} style={{ width: '100%' }} />
-                                    </Form.Item>
+                                        <div style={{ height: 4, background: status.color }} />
 
-                                    {format === 'GROUPS_KNOCKOUT' && (
-                                        <>
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        name="groupCount"
-                                                        label="Qtd de Grupos"
-                                                        rules={[
-                                                            { required: true },
-                                                            ({ getFieldValue }) => ({
-                                                                validator(_, value) {
-                                                                    const tc = getFieldValue('teamCount');
-                                                                    if (value > 1 && value % 2 !== 0) {
-                                                                        return Promise.reject(new Error('Número de grupos deve ser 1 ou par'));
-                                                                    }
-                                                                    if (tc % value !== 0) return Promise.reject(new Error('Times devem ser divisíveis pelos grupos'));
-                                                                    return Promise.resolve();
-                                                                },
-                                                            }),
-                                                        ]}
-                                                    >
-                                                        <InputNumber min={1} max={teamCount} style={{ width: '100%' }} />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        name="advancingCount"
-                                                        label="Classificados/Grupo"
-                                                        rules={[
-                                                            { required: true },
-                                                            ({ getFieldValue }) => ({
-                                                                validator(_, value) {
-                                                                    const tc = getFieldValue('teamCount');
-                                                                    const gc = getFieldValue('groupCount') || 1;
-                                                                    const teamsPerGroup = tc / gc;
-                                                                    if (value >= teamsPerGroup) {
-                                                                        return Promise.reject(new Error(`Deve ser menor que ${teamsPerGroup} (times por grupo)`));
-                                                                    }
-                                                                    return Promise.resolve();
-                                                                },
-                                                            }),
-                                                        ]}
-                                                    >
-                                                        <InputNumber min={1} style={{ width: '100%' }} />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <div style={{ marginBottom: 16, padding: '8px 12px', background: '#f5f5f5', borderRadius: 4 }}>
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                                    Configuração: <b>{groupCount}</b> grupos de <b>{teamCount / groupCount || 0}</b> times.
-                                                    Total de <b>{groupCount * getFieldValue('advancingCount')}</b> classificados.
-                                                </Text>
+                                        <div style={{ padding: '20px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                                <Title level={4} style={{ margin: 0, flex: 1, paddingRight: 8, fontSize: 18, lineHeight: 1.3 }}>
+                                                    {champ.name}
+                                                </Title>
+                                                <Tag color={status.color} style={{ margin: 0, borderRadius: 6, border: 'none', background: `${status.color}15`, color: status.color, fontWeight: 600 }}>
+                                                    {status.label}
+                                                </Tag>
                                             </div>
-                                        </>
-                                    )}
 
-                                    {format === 'LEAGUE' && (
-                                        <Form.Item name="roundTrip" label="Turno e Returno (Ida e Volta)?">
-                                            <Radio.Group>
-                                                <Radio value={true}>Sim (Ida e Volta)</Radio>
-                                                <Radio value={false}>Não (Turno Único)</Radio>
-                                            </Radio.Group>
-                                        </Form.Item>
-                                    )}
-                                </>
+                                            <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                <Tag style={{ borderRadius: 6 }}>{formatLabel[champ.format]}</Tag>
+                                                {champ.format === 'GROUPS_KNOCKOUT' && (
+                                                    <Tag style={{ borderRadius: 6 }}>{champ.groupCount} Grupos</Tag>
+                                                )}
+                                                {champ.format === 'LEAGUE' && champ.roundTrip && (
+                                                    <Tag style={{ borderRadius: 6 }}>Ida e Volta</Tag>
+                                                )}
+                                            </div>
+
+                                            <div style={{ marginBottom: 4 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                                    <Text type="secondary" style={{ fontSize: 13 }}>
+                                                        <TeamOutlined style={{ marginRight: 6 }} />Times Inscritos
+                                                    </Text>
+                                                    <Text strong style={{ fontSize: 13 }}>
+                                                        {teamsFilled} / {teamsTotal}
+                                                    </Text>
+                                                </div>
+                                                <Progress
+                                                    percent={pct}
+                                                    size={['100%', 6] as any}
+                                                    showInfo={false}
+                                                    strokeColor={pct === 100 ? token.colorSuccess : token.colorPrimary}
+                                                    trailColor={token.colorFillSecondary}
+                                                    style={{ marginBottom: 0 }}
+                                                />
+                                            </div>
+
+                                            {champ.status === 'FINISHED' && champ.champion && (
+                                                <div style={{
+                                                    marginTop: 16, display: 'flex', alignItems: 'center', gap: 10,
+                                                    padding: '10px 14px',
+                                                    background: 'rgba(250,219,20,0.1)',
+                                                    borderRadius: 12, border: '1px solid rgba(250,219,20,0.2)',
+                                                }}>
+                                                    <TrophyOutlined style={{ color: '#d97706', fontSize: 18 }} />
+                                                    <div>
+                                                        <Text size="small" type="secondary" style={{ fontSize: 10, display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Campeão</Text>
+                                                        <Text strong style={{ color: '#b8960c' }}>{champ.champion}</Text>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div
+                                            style={{
+                                                borderTop: `1px solid ${token.colorBorderSecondary}`,
+                                                padding: '12px 20px',
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                background: token.colorFillQuaternary,
+                                            }}
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <Button 
+                                                size="middle" 
+                                                type="text" 
+                                                icon={<SettingOutlined />} 
+                                                onClick={() => openEdit(champ)}
+                                                style={{ borderRadius: 8 }}
+                                            >
+                                                Configurar
+                                            </Button>
+                                            <Button
+                                                size="middle" 
+                                                type="primary"
+                                                icon={<ArrowRightOutlined />}
+                                                onClick={() => navigate(`/championships/${champ.id}`)}
+                                                style={{ borderRadius: 8 }}
+                                            >
+                                                Gerenciar
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                </Col>
                             );
-                        }}
-                    </Form.Item>
-                </Form>
-            </Modal>
+                        })}
+                    </Row>
+                )}
+            </Spin>
+
+            <ChampionshipModal
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                onSave={handleSave}
+                initialValues={selectedChamp}
+                isEditing={isEditing}
+                submitting={submitting}
+            />
         </div>
     );
 };

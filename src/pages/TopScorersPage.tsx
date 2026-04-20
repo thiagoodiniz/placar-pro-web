@@ -36,9 +36,14 @@ const TopScorersPage: React.FC = () => {
         {
             title: 'Jogador',
             key: 'player',
-            render: (record: any) => (
                 <Space>
-                    <Avatar icon={<UserOutlined />} size="small" />
+                    <Avatar 
+                        src={record.photoUrl} 
+                        size="small" 
+                        style={{ backgroundColor: '#f0f0f0' }}
+                    >
+                        {!record.photoUrl && record.player[0].toUpperCase()}
+                    </Avatar>
                     <div>
                         <div style={{ fontWeight: 'bold' }}>{record.player}</div>
                         <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{record.team}</div>

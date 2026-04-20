@@ -24,6 +24,15 @@ const api: any = {
         if (url === '/teams/championship') {
             return { data: await mockApi.addTeamsToChampionship(body.championshipId, body.teamIds) };
         }
+        // Add player to team: POST /teams/:id/players
+        if (url.includes('/teams/') && url.endsWith('/players')) {
+            const teamId = url.split('/')[2];
+            return { data: await mockApi.addPlayerToTeam(teamId, body) };
+        }
+        // Create manual match
+        if (url === '/championships/match') {
+            return { data: await mockApi.createMatch(body) };
+        }
         if (url.includes('/start')) {
             const id = url.split('/')[2];
             return { data: await mockApi.startChampionship(id, body.mode) };
@@ -35,6 +44,11 @@ const api: any = {
         if (url.includes('/finish')) {
             const id = url.split('/')[2];
             return { data: await mockApi.finishChampionship(id) };
+        }
+        // Groups reset must come BEFORE generic /reset to avoid wrong handler
+        if (url.includes('/groups/reset')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.resetGroups(id) };
         }
         if (url.includes('/reset')) {
             const id = url.split('/')[2];
@@ -70,6 +84,25 @@ const api: any = {
         if (url.includes('/matches/')) {
             const id = url.split('/')[2];
             return { data: await mockApi.updateMatch(id, body) };
+        }
+        if (url.includes('/teams/') && url.includes('/players/')) {
+            const [,, teamId,, playerId] = url.split('/');
+            return { data: await mockApi.updatePlayerInTeam(teamId, playerId, body) };
+        }
+        if (url.includes('/teams/')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.updateTeam(id, body) };
+        }
+        return { data: {} };
+    },
+    delete: async (url: string) => {
+        if (url.includes('/teams/') && url.includes('/players/')) {
+            const [,, teamId,, playerId] = url.split('/');
+            return { data: await mockApi.removePlayerFromTeam(teamId, playerId) };
+        }
+        if (url.includes('/teams/')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.deleteTeam(id) };
         }
         return { data: {} };
     }

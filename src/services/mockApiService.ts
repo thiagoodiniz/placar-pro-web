@@ -14,7 +14,10 @@ export enum MatchStatus {
 interface Team {
     id: string;
     name: string;
-    players?: { id: string; name: string }[];
+    logoUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    players?: { id: string; name: string; photoUrl?: string }[];
 }
 
 interface Championship {
@@ -53,7 +56,7 @@ interface Match {
     round: number;
     location?: string;
     dateTime?: string;
-    goals: { playerId: string; teamId: string; playerName: string; teamName: string }[];
+    goals: { id: string; playerId: string; teamId: string; playerName: string; teamName: string }[];
 }
 
 const STORAGE_KEYS = {
@@ -65,14 +68,94 @@ const STORAGE_KEYS = {
 
 const SEED_DATA = {
     teams: [
-        { id: 't1', name: 'Flamengo', players: [{ id: 'p1', name: 'Gabigol' }, { id: 'p2', name: 'Arrascaeta' }] },
-        { id: 't2', name: 'Vasco', players: [{ id: 'p3', name: 'Payet' }, { id: 'p4', name: 'Vegetti' }] },
-        { id: 't3', name: 'Fluminense', players: [{ id: 'p5', name: 'Cano' }, { id: 'p6', name: 'Ganso' }] },
-        { id: 't4', name: 'Botafogo', players: [{ id: 'p7', name: 'Tiquinho' }, { id: 'p8', name: 'Junior Santos' }] },
-        { id: 't5', name: 'Palmeiras', players: [{ id: 'p9', name: 'Endrick' }, { id: 'p10', name: 'Veiga' }] },
-        { id: 't6', name: 'Santos', players: [{ id: 'p11', name: 'Gil' }, { id: 'p12', name: 'Otero' }] },
-        { id: 't7', name: 'Corinthians', players: [{ id: 'p13', name: 'Yuri Alberto' }, { id: 'p14', name: 'Garro' }] },
-        { id: 't8', name: 'São Paulo', players: [{ id: 'p15', name: 'Calleri' }, { id: 'p16', name: 'Lucas' }] },
+        {
+            id: 't1',
+            name: 'Flamengo',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/5981/image/small',
+            primaryColor: '#C8102E',
+            secondaryColor: '#000000',
+            players: [
+                { id: 'p1', name: 'Gabigol', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Gabigol' },
+                { id: 'p2', name: 'Arrascaeta', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Arrascaeta' }
+            ]
+        },
+        {
+            id: 't2',
+            name: 'Vasco',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1974/image/small',
+            primaryColor: '#000000',
+            secondaryColor: '#FFFFFF',
+            players: [
+                { id: 'p3', name: 'Payet', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Payet' },
+                { id: 'p4', name: 'Vegetti', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Vegetti' }
+            ]
+        },
+        {
+            id: 't3',
+            name: 'Fluminense',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1961/image/small',
+            primaryColor: '#7A263A',
+            secondaryColor: '#006341',
+            players: [
+                { id: 'p5', name: 'Cano', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Cano' },
+                { id: 'p6', name: 'Ganso', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Ganso' }
+            ]
+        },
+        {
+            id: 't4',
+            name: 'Botafogo',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1958/image/small',
+            primaryColor: '#000000',
+            secondaryColor: '#FFFFFF',
+            players: [
+                { id: 'p7', name: 'Tiquinho', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Tiquinho' },
+                { id: 'p8', name: 'Junior Santos', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=JuniorSantos' }
+            ]
+        },
+        {
+            id: 't5',
+            name: 'Palmeiras',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1963/image/small',
+            primaryColor: '#006437',
+            secondaryColor: '#FFFFFF',
+            players: [
+                { id: 'p9', name: 'Endrick', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Endrick' },
+                { id: 'p10', name: 'Veiga', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Veiga' }
+            ]
+        },
+        {
+            id: 't6',
+            name: 'Santos',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1968/image/small',
+            primaryColor: '#FFFFFF',
+            secondaryColor: '#000000',
+            players: [
+                { id: 'p11', name: 'Gil', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Gil' },
+                { id: 'p12', name: 'Otero', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Otero' }
+            ]
+        },
+        {
+            id: 't7',
+            name: 'Corinthians',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1957/image/small',
+            primaryColor: '#000000',
+            secondaryColor: '#FFFFFF',
+            players: [
+                { id: 'p13', name: 'Yuri Alberto', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=YuriAlberto' },
+                { id: 'p14', name: 'Garro', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Garro' }
+            ]
+        },
+        {
+            id: 't8',
+            name: 'São Paulo',
+            logoUrl: 'https://api.sofascore.app/api/v1/team/1981/image/small',
+            primaryColor: '#E60026',
+            secondaryColor: '#000000',
+            players: [
+                { id: 'p15', name: 'Calleri', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Calleri' },
+                { id: 'p16', name: 'Lucas', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=LucasMoura' }
+            ]
+        }
     ],
     championships: [
         {
@@ -276,15 +359,117 @@ class MockApiService {
 
     // Teams
     async getTeams() {
-        return this.getData<Team>(STORAGE_KEYS.TEAMS);
+        const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        const championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
+        const matches = this.getData<Match>(STORAGE_KEYS.MATCHES);
+
+        return teams.map(team => {
+            const participatedChampionships = championships.filter(c =>
+                c.teams.some(ct => ct.teamId === team.id)
+            ).map(c => ({ id: c.id, name: c.name, status: c.status }));
+
+            const titles = championships.filter(c => c.champion === team.name).length;
+
+            const teamMatches = matches.filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id);
+            const finishedMatches = teamMatches
+                .filter(m => m.status === MatchStatus.FINISHED)
+                .sort((a, b) => (b.dateTime || '').localeCompare(a.dateTime || ''));
+
+            const scheduledMatches = teamMatches
+                .filter(m => m.status === MatchStatus.SCHEDULED)
+                .sort((a, b) => (a.dateTime || '').localeCompare(b.dateTime || ''));
+
+            return {
+                ...team,
+                stats: {
+                    titles,
+                    championshipCount: participatedChampionships.length,
+                    playerCount: team.players?.length || 0,
+                    participatedChampionships,
+                    lastMatch: finishedMatches[0] ? {
+                        ...finishedMatches[0],
+                        opponentName: finishedMatches[0].homeTeamId === team.id
+                            ? teams.find(t => t.id === finishedMatches[0].awayTeamId)?.name
+                            : teams.find(t => t.id === finishedMatches[0].homeTeamId)?.name
+                    } : null,
+                    nextMatch: scheduledMatches[0] ? {
+                        ...scheduledMatches[0],
+                        opponentName: scheduledMatches[0].homeTeamId === team.id
+                            ? teams.find(t => t.id === scheduledMatches[0].awayTeamId)?.name
+                            : teams.find(t => t.id === scheduledMatches[0].homeTeamId)?.name
+                    } : null
+                }
+            };
+        });
     }
 
-    async createTeam(data: { name: string }) {
+    async updateTeam(id: string, data: Partial<Team>) {
         const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
-        const newTeam = { id: uuidv4(), name: data.name };
+        const index = teams.findIndex(t => t.id === id);
+        if (index === -1) throw new Error('Team not found');
+
+        teams[index] = { ...teams[index], ...data };
+        this.setData(STORAGE_KEYS.TEAMS, teams);
+        return teams[index];
+    }
+
+    async deleteTeam(id: string) {
+        let teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        teams = teams.filter(t => t.id !== id);
+        this.setData(STORAGE_KEYS.TEAMS, teams);
+        return { message: 'Team deleted' };
+    }
+
+    async createTeam(data: { name: string; logoUrl?: string; primaryColor?: string; secondaryColor?: string }) {
+        const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        const newTeam = {
+            id: uuidv4(),
+            name: data.name,
+            logoUrl: data.logoUrl,
+            primaryColor: data.primaryColor || '#166534',
+            secondaryColor: data.secondaryColor || '#ffffff',
+            players: []
+        };
         teams.push(newTeam);
         this.setData(STORAGE_KEYS.TEAMS, teams);
         return newTeam;
+    }
+
+    async removePlayerFromTeam(teamId: string, playerId: string) {
+        const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        const index = teams.findIndex(t => t.id === teamId);
+        if (index === -1) throw new Error('Team not found');
+
+        teams[index].players = teams[index].players?.filter(p => p.id !== playerId);
+        this.setData(STORAGE_KEYS.TEAMS, teams);
+        return { message: 'Player removed' };
+    }
+
+    async updatePlayerInTeam(teamId: string, playerId: string, data: { name: string; photoUrl?: string }) {
+        const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        const index = teams.findIndex(t => t.id === teamId);
+        if (index === -1) throw new Error('Team not found');
+
+        const playerIndex = teams[index].players?.findIndex(p => p.id === playerId);
+        if (playerIndex === undefined || playerIndex === -1) throw new Error('Player not found');
+
+        teams[index].players![playerIndex].name = data.name;
+        if (data.photoUrl !== undefined) {
+            teams[index].players![playerIndex].photoUrl = data.photoUrl;
+        }
+        this.setData(STORAGE_KEYS.TEAMS, teams);
+        return teams[index].players![playerIndex];
+    }
+
+    async addPlayerToTeam(teamId: string, data: { name: string; photoUrl?: string }) {
+        const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        const index = teams.findIndex(t => t.id === teamId);
+        if (index === -1) throw new Error('Team not found');
+        const newPlayer = { id: uuidv4(), name: data.name, photoUrl: data.photoUrl };
+        if (!teams[index].players) teams[index].players = [];
+        teams[index].players!.push(newPlayer);
+        this.setData(STORAGE_KEYS.TEAMS, teams);
+        return newPlayer;
     }
 
     async addTeamsToChampionship(championshipId: string, teamIds: string[]) {
@@ -579,6 +764,7 @@ class MockApiService {
                         return {
                             teamId: team.id,
                             teamName: team.name,
+                            teamLogoUrl: team.logoUrl,
                             played: 0, wins: 0, draws: 0, losses: 0,
                             goalsFor: 0, goalsAgainst: 0, gd: 0, points: 0
                         };
@@ -591,12 +777,13 @@ class MockApiService {
         return groups.map(group => {
             const groupMatches = matches.filter(m => m.groupId === group.id);
             const standings = group.teams.map(gt => {
-                const team = allTeams.find(t => t.id === gt.teamId) || { id: gt.teamId, name: 'Unknown' };
+                const team = allTeams.find(t => t.id === gt.teamId) || { id: gt.teamId, name: 'Unknown', logoUrl: undefined };
                 const tMatches = groupMatches.filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id);
 
                 let stats = {
                     teamId: team.id,
                     teamName: team.name,
+                    teamLogoUrl: team.logoUrl,
                     played: tMatches.length,
                     wins: 0, draws: 0, losses: 0,
                     goalsFor: 0, goalsAgainst: 0, gd: 0, points: 0
@@ -626,13 +813,24 @@ class MockApiService {
 
     async getTopScorers(championshipId: string) {
         const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => m.championshipId === championshipId);
+        const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
         const scores: any = {};
 
         matches.forEach(m => {
             m.goals.forEach(g => {
                 const key = g.playerId;
                 if (!scores[key]) {
-                    scores[key] = { player: g.playerName, team: g.teamName, goals: 0 };
+                    const team = teams.find(t => t.id === g.teamId);
+                    const player = team?.players?.find(p => p.id === g.playerId);
+                    scores[key] = { 
+                        playerId: g.playerId,
+                        player: g.playerName, 
+                        photoUrl: player?.photoUrl,
+                        teamId: g.teamId,
+                        team: g.teamName, 
+                        teamLogoUrl: team?.logoUrl,
+                        goals: 0 
+                    };
                 }
                 scores[key].goals++;
             });
@@ -658,14 +856,14 @@ class MockApiService {
             for (let i = 0; i < homeScore; i++) {
                 if (homeTeam?.players?.length) {
                     const p = homeTeam.players[Math.floor(Math.random() * homeTeam.players.length)];
-                    goals.push({ playerId: p.id, playerName: p.name, teamId: homeTeam.id, teamName: homeTeam.name });
+                    goals.push({ id: uuidv4(), playerId: p.id, playerName: p.name, teamId: homeTeam.id, teamName: homeTeam.name });
                 }
             }
 
             for (let i = 0; i < awayScore; i++) {
                 if (awayTeam?.players?.length) {
                     const p = awayTeam.players[Math.floor(Math.random() * awayTeam.players.length)];
-                    goals.push({ playerId: p.id, playerName: p.name, teamId: awayTeam.id, teamName: awayTeam.name });
+                    goals.push({ id: uuidv4(), playerId: p.id, playerName: p.name, teamId: awayTeam.id, teamName: awayTeam.name });
                 }
             }
 

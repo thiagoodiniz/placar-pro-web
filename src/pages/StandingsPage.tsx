@@ -51,7 +51,23 @@ const StandingsPage: React.FC = () => {
                 }}>{index + 1}</div>;
             }
         },
-        { title: 'Time', dataIndex: 'teamName', key: 'teamName', fixed: 'left' as const },
+        { 
+            title: 'Time', 
+            key: 'teamName', 
+            fixed: 'left' as const,
+            render: (record: any) => (
+                <Space size={8}>
+                    <Avatar 
+                        size="small" 
+                        src={record.teamLogoUrl} 
+                        style={{ backgroundColor: '#f0f0f0' }}
+                    >
+                        {!record.teamLogoUrl && record.teamName[0].toUpperCase()}
+                    </Avatar>
+                    <Text strong>{record.teamName}</Text>
+                </Space>
+            )
+        },
         { title: 'P', dataIndex: 'points', key: 'points', sorter: (a: any, b: any) => b.points - a.points, render: (p: number) => <Text strong>{p}</Text> },
         { title: 'J', dataIndex: 'played', key: 'played' },
         { title: 'V', dataIndex: 'wins', key: 'wins' },

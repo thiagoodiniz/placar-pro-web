@@ -21,7 +21,9 @@ import {
     Avatar,
     InputNumber,
     DatePicker,
-    Radio
+    Radio,
+    Spin,
+    theme,
 } from 'antd';
 import {
     TrophyOutlined,
@@ -40,6 +42,7 @@ import {
 } from '@ant-design/icons';
 import api from '../services/api';
 import dayjs from 'dayjs';
+import ChampionshipModal from '../components/ChampionshipModal';
 
 const { Title, Text } = Typography;
 
@@ -186,6 +189,7 @@ const TeamPicker: React.FC<{
 const ChampionshipDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { token } = theme.useToken();
 
     const [championship, setChampionship] = useState<any>(null);
     const [standings, setStandings] = useState<any[]>([]);
@@ -216,7 +220,6 @@ const ChampionshipDetailPage: React.FC = () => {
     const awayScore = Form.useWatch('awayScore', resultForm);
     const [detailsForm] = Form.useForm();
     const [manualMatchForm] = Form.useForm();
-    const [configForm] = Form.useForm();
     const [editTeamsForm] = Form.useForm();
     const [groupForm] = Form.useForm();
 
@@ -333,7 +336,11 @@ const ChampionshipDetailPage: React.FC = () => {
 
     const handleOpenResultModal = async (match: any) => {
         setSelectedMatch(match);
-        setMatchGoals(match.goals || []);
+        // Ensure each goal has a unique ID for the UI filtering
+        setMatchGoals((match.goals || []).map((g: any) => ({
+            ...g,
+            id: g.id || Math.random().toString(36).substr(2, 9)
+        })));
         resultForm.setFieldsValue({
             homeScore: match.homeScore || 0,
             awayScore: match.awayScore || 0,
@@ -367,6 +374,7 @@ const ChampionshipDetailPage: React.FC = () => {
             await api.patch(`/matches/${selectedMatch.id}`, {
                 ...values,
                 goals: matchGoals.map(g => ({
+                    id: g.id,
                     playerId: g.playerId,
                     teamId: g.teamId,
                     playerName: g.playerName,
@@ -589,7 +597,24 @@ const ChampionshipDetailPage: React.FC = () => {
 
     const standingColumns = [
         { title: 'Pos', key: 'pos', width: 50, render: (_: any, __: any, i: number) => i + 1 },
-        { title: 'Time', dataIndex: 'teamName', key: 'teamName', fixed: 'left' as const, width: 120 },
+        { 
+            title: 'Time', 
+            key: 'teamName', 
+            fixed: 'left' as const, 
+            width: 140,
+            render: (record: any) => (
+                <Space size={8}>
+                    <Avatar 
+                        size="small" 
+                        src={record.teamLogoUrl} 
+                        style={{ backgroundColor: '#f0f0f0' }}
+                    >
+                        {!record.teamLogoUrl && record.teamName[0].toUpperCase()}
+                    </Avatar>
+                    <Text strong style={{ fontSize: 13 }}>{record.teamName}</Text>
+                </Space>
+            )
+        },
         { title: 'P', dataIndex: 'points', key: 'points', width: 40, render: (p: number) => <Text strong>{p}</Text> },
         { title: 'J', dataIndex: 'played', key: 'played', width: 40 },
         { title: 'V', dataIndex: 'wins', key: 'wins', width: 40 },
@@ -598,7 +623,11 @@ const ChampionshipDetailPage: React.FC = () => {
         { title: 'SG', dataIndex: 'gd', key: 'gd', width: 40 },
     ];
 
-    if (loading) return <div>Carregando...</div>;
+    if (loading) return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <Spin size="large" tip="Carregando campeonato..." />
+        </div>
+    );
     if (!championship) return <Empty description="Campeonato não encontrado" />;
 
     // Determine the next phase name and ID for the "Iniciar Próxima Fase" button
@@ -707,10 +736,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 <Space direction="vertical" align="end">
                     <Space>
                         {championship.status !== 'FINISHED' && (
-                            <Button icon={<SettingOutlined />} onClick={() => {
-                                configForm.setFieldsValue(championship);
-                                setIsConfigModalOpen(true);
-                            }} />
+                            <Button icon={<SettingOutlined />} onClick={() => setIsConfigModalOpen(true)} />
                         )}
                     </Space>
                     <Tag color={championship.status === 'FINISHED' ? 'gold' : championship.status === 'STARTED' ? 'green' : 'orange'}>
@@ -720,10 +746,15 @@ const ChampionshipDetailPage: React.FC = () => {
             </div>
 
             {championTeam && (
-                <div style={{ marginBottom: 24, textAlign: 'center', padding: '20px', background: 'linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.2) 50%, rgba(255,215,0,0.1) 100%)', borderRadius: '8px', border: '1px solid #ffd700' }}>
-                    <TrophyOutlined style={{ fontSize: '32px', color: '#faad14', marginBottom: 8 }} />
-                    <Title level={3} style={{ margin: 0, color: '#faad14' }}>Campeão</Title>
-                    <Title level={2} style={{ margin: 0 }}>{championTeam.teamName || championTeam.name}</Title>
+                <div style={{
+                    marginBottom: 24, textAlign: 'center', padding: '24px 20px',
+                    background: 'linear-gradient(135deg, rgba(250,219,20,0.12) 0%, rgba(250,219,20,0.06) 100%)',
+                    borderRadius: token.borderRadiusLG,
+                    border: '1px solid rgba(250,219,20,0.35)',
+                }}>
+                    <TrophyOutlined style={{ fontSize: '36px', color: '#fadb14', marginBottom: 8, display: 'block' }} />
+                    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, display: 'block', marginBottom: 4 }}>Campeão</Text>
+                    <Title level={2} style={{ margin: 0, color: '#b8960c' }}>{championTeam.teamName || championTeam.name}</Title>
                 </div>
             )}
 
@@ -896,7 +927,12 @@ const ChampionshipDetailPage: React.FC = () => {
                         label: <span><TrophyOutlined /> Classificação</span>,
                         children: (
                             <Space direction="vertical" style={{ width: '100%' }}>
-                                <div style={{ padding: '6px 10px', fontSize: '11px', color: '#8c8c8c', background: '#fafafa', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: '4px 16px' }}>
+                                <div style={{
+                                    padding: '6px 12px', fontSize: '11px',
+                                    color: token.colorTextSecondary,
+                                    background: token.colorFillQuaternary,
+                                    borderRadius: 6, display: 'flex', flexWrap: 'wrap', gap: '4px 16px',
+                                }}>
                                     <span><b>P</b> - Pontos</span>
                                     <span><b>J</b> - Jogos</span>
                                     <span><b>V</b> - Vitórias</span>
@@ -977,45 +1013,77 @@ const ChampionshipDetailPage: React.FC = () => {
                                                 children: (
                                                     <div>
                                                         {rounds.length > 0 && (
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, background: '#f0f2f5', padding: '12px 20px', borderRadius: 8 }}>
+                                                            <div style={{
+                                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                marginBottom: 20, background: token.colorFillQuaternary,
+                                                                padding: '10px 16px', borderRadius: 8,
+                                                            }}>
                                                                 <Button
+                                                                    size="small"
                                                                     disabled={activeRound === rounds[0]}
                                                                     onClick={() => setCurrentRound(activeRound - 1)}
-                                                                >Anterior</Button>
-                                                                <Title level={4} style={{ margin: 0 }}>Rodada {activeRound}</Title>
+                                                                >← Anterior</Button>
+                                                                <Text strong style={{ fontSize: 14 }}>Rodada {activeRound}</Text>
                                                                 <Button
+                                                                    size="small"
                                                                     disabled={activeRound === rounds[rounds.length - 1]}
                                                                     onClick={() => setCurrentRound(activeRound + 1)}
-                                                                >Próxima</Button>
+                                                                >Próxima →</Button>
                                                             </div>
                                                         )}
 
                                                         {Object.keys(matchesByGroup).sort().map(gName => (
                                                             <div key={gName} style={{ marginBottom: 16 }}>
-                                                                <div style={{ paddingLeft: 8, borderLeft: '3px solid #1890ff', marginBottom: 12 }}>
-                                                                    <Text strong style={{ color: '#1890ff' }}>{gName}</Text>
+                                                                <div style={{ paddingLeft: 10, borderLeft: `3px solid ${token.colorPrimary}`, marginBottom: 12 }}>
+                                                                    <Text strong style={{ color: token.colorPrimary }}>{gName}</Text>
                                                                 </div>
                                                                 <List
                                                                     dataSource={matchesByGroup[gName]}
                                                                     renderItem={(m: any) => (
                                                                         <List.Item style={{ border: 'none', padding: '0 0 12px 0' }}>
-                                                                            <Card size="small" style={{ width: '100%' }}>
-                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                                                                    <div style={{ flex: 1, textAlign: 'right' }}>
-                                                                                        <Text strong>{m.homeTeam?.name || 'TBD'}</Text>
+                                                                            <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
+                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                                                                    <div style={{ flex: 1, textAlign: 'right', paddingRight: 12, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                                                                                        <Text strong style={{ fontSize: 13 }}>{m.homeTeam?.name || 'TBD'}</Text>
+                                                                                        <Avatar 
+                                                                                            size="small" 
+                                                                                            src={m.homeTeam?.logoUrl}
+                                                                                            style={{ backgroundColor: '#f5f5f5' }}
+                                                                                        >
+                                                                                            {!m.homeTeam?.logoUrl && m.homeTeam?.name?.[0].toUpperCase()}
+                                                                                        </Avatar>
                                                                                     </div>
-                                                                                    <div style={{ margin: '0 20px', background: '#f5f5f5', padding: '4px 16px', borderRadius: '4px', fontWeight: 'bold', fontSize: '18px' }}>
+                                                                                    <div style={{
+                                                                                        minWidth: 80, textAlign: 'center',
+                                                                                        background: m.status === 'FINISHED' ? token.colorFillSecondary : token.colorFillQuaternary,
+                                                                                        padding: '5px 14px', borderRadius: 8,
+                                                                                        fontWeight: 700, fontSize: 20,
+                                                                                        color: m.status === 'FINISHED' ? token.colorTextBase : token.colorTextSecondary,
+                                                                                        letterSpacing: '0.05em',
+                                                                                    }}>
                                                                                         {m.status === 'FINISHED'
                                                                                             ? (m.homePenalties !== undefined && m.awayPenalties !== undefined
-                                                                                                ? `${m.homeScore}(${m.homePenalties}) x ${m.awayScore}(${m.awayPenalties})`
-                                                                                                : `${m.homeScore} x ${m.awayScore}`)
-                                                                                            : 'v'}
+                                                                                                ? `${m.homeScore}(${m.homePenalties}) × ${m.awayScore}(${m.awayPenalties})`
+                                                                                                : `${m.homeScore} × ${m.awayScore}`)
+                                                                                            : 'vs'}
                                                                                     </div>
-                                                                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                                                                        <Text strong>{m.awayTeam?.name || 'TBD'}</Text>
+                                                                                    <div style={{ flex: 1, textAlign: 'left', paddingLeft: 12, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
+                                                                                        <Avatar 
+                                                                                            size="small" 
+                                                                                            src={m.awayTeam?.logoUrl}
+                                                                                            style={{ backgroundColor: '#f5f5f5' }}
+                                                                                        >
+                                                                                            {!m.awayTeam?.logoUrl && m.awayTeam?.name?.[0].toUpperCase()}
+                                                                                        </Avatar>
+                                                                                        <Text strong style={{ fontSize: 13 }}>{m.awayTeam?.name || 'TBD'}</Text>
                                                                                     </div>
                                                                                 </div>
-                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#8c8c8c', borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+                                                                                <div style={{
+                                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                                    fontSize: '12px', color: token.colorTextSecondary,
+                                                                                    borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 9,
+                                                                                    flexWrap: 'wrap', gap: '6px 0',
+                                                                                }}>
                                                                                     <Space split={<Divider type="vertical" />}>
                                                                                         <span><EnvironmentOutlined /> {m.location || 'Local TBD'}</span>
                                                                                         <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora TBD'}</span>
@@ -1059,22 +1127,50 @@ const ChampionshipDetailPage: React.FC = () => {
                     {
                         key: 'scorers',
                         label: <span><FireOutlined /> Artilharia</span>,
-                        children: (
+                        children: scorers.length === 0 ? (
+                            <Empty description="Nenhum gol registrado" />
+                        ) : (
                             <List
                                 dataSource={scorers}
-                                renderItem={(item: any) => (
-                                    <List.Item>
-                                        <List.Item.Meta
-                                            avatar={<Avatar icon={<UserOutlined />} src={item.photoUrl} />}
-                                            title={<Text strong>{item.player}</Text>}
-                                            description={item.team}
-                                        />
-                                        <div style={{ textAlign: 'right' }}>
-                                            <Text strong style={{ fontSize: '18px', color: '#f5222d' }}>{item.goals}</Text>
-                                            <br /><Text type="secondary" style={{ fontSize: '12px' }}>gols</Text>
-                                        </div>
-                                    </List.Item>
-                                )}
+                                renderItem={(item: any, index: number) => {
+                                    const medalColors = ['#fadb14', '#d9d9d9', '#d48806'];
+                                    const isMedal = index < 3;
+                                    return (
+                                        <List.Item style={{
+                                            padding: '12px 16px',
+                                            background: index === 0 ? 'rgba(250,219,20,0.06)' : token.colorBgContainer,
+                                            borderRadius: 8, marginBottom: 6,
+                                            border: `1px solid ${index === 0 ? 'rgba(250,219,20,0.3)' : token.colorBorderSecondary}`,
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                                                <div style={{
+                                                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                                                    background: isMedal ? medalColors[index] : token.colorFillSecondary,
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontWeight: 700, fontSize: 12,
+                                                    color: isMedal ? (index === 0 ? '#7a5c00' : index === 1 ? '#595959' : '#fff') : token.colorTextSecondary,
+                                                }}>
+                                                    {index + 1}
+                                                </div>
+                                                <Avatar 
+                                                    src={item.photoUrl} 
+                                                    size={32}
+                                                    style={{ backgroundColor: '#f0f0f0' }}
+                                                >
+                                                    {!item.photoUrl && item.player[0].toUpperCase()}
+                                                </Avatar>
+                                                <div>
+                                                    <Text strong style={{ fontSize: 14, display: 'block' }}>{item.player}</Text>
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>{item.team}</Text>
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <Text strong style={{ fontSize: 22, color: token.colorError, lineHeight: 1 }}>{item.goals}</Text>
+                                                <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>gols</Text>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                }}
                             />
                         )
                     }
@@ -1083,21 +1179,25 @@ const ChampionshipDetailPage: React.FC = () => {
             {/* Result Modal with Goal Authors */}
             <Modal title="Resultado e Gols" open={isResultModalOpen} onCancel={() => setIsResultModalOpen(false)} onOk={() => resultForm.submit()} width={600}>
                 <Form form={resultForm} layout="vertical" onFinish={handleSaveResult}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, background: '#fafafa', padding: 16, borderRadius: 8 }}>
+                    <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        marginBottom: 20, background: token.colorFillQuaternary,
+                        padding: '16px 20px', borderRadius: 12,
+                    }}>
                         <div style={{ textAlign: 'center', flex: 1 }}>
-                            <Title level={5}>{selectedMatch?.homeTeam?.name}</Title>
-                            <Form.Item name="homeScore" noStyle><InputNumber min={0} size="large" /></Form.Item>
+                            <Title level={5} style={{ margin: '0 0 10px' }}>{selectedMatch?.homeTeam?.name}</Title>
+                            <Form.Item name="homeScore" noStyle><InputNumber min={0} size="large" style={{ width: 72 }} /></Form.Item>
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 20px' }}>X</div>
+                        <div style={{ fontSize: '20px', fontWeight: 700, margin: '0 16px', color: token.colorTextSecondary }}>×</div>
                         <div style={{ textAlign: 'center', flex: 1 }}>
-                            <Title level={5}>{selectedMatch?.awayTeam?.name}</Title>
-                            <Form.Item name="awayScore" noStyle><InputNumber min={0} size="large" /></Form.Item>
+                            <Title level={5} style={{ margin: '0 0 10px' }}>{selectedMatch?.awayTeam?.name}</Title>
+                            <Form.Item name="awayScore" noStyle><InputNumber min={0} size="large" style={{ width: 72 }} /></Form.Item>
                         </div>
                     </div>
 
-                    {/* Penalty shootout - only for knockout phases when draw */}
+                {/* Penalty shootout - only for knockout phases when draw */}
                     {selectedMatch?.phase && selectedMatch?.phase !== 'GROUP' && homeScore === awayScore && homeScore !== undefined && (
-                        <div style={{ background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                        <div style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarning}50`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
                             <Text strong style={{ color: '#fa8c16' }}>Empate! Resultado dos Pênaltis:</Text>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12 }}>
                                 <div style={{ textAlign: 'center' }}>
@@ -1236,96 +1336,13 @@ const ChampionshipDetailPage: React.FC = () => {
             </Modal>
 
             {/* Config Modal */}
-            <Modal title="Configurar Campeonato" open={isConfigModalOpen} onCancel={() => setIsConfigModalOpen(false)} onOk={() => configForm.submit()} maskClosable={false}>
-                <Form form={configForm} layout="vertical" onFinish={handleUpdateConfig}>
-                    <Form.Item name="name" label="Nome do Campeonato" rules={[{ required: true }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="format" label="Formato" rules={[{ required: true }]}>
-                        <Radio.Group>
-                            <Radio value="GROUPS_KNOCKOUT">Grupos + Mata-mata</Radio>
-                            <Radio value="KNOCKOUT">Mata-mata Direto</Radio>
-                            <Radio value="LEAGUE">Liga (Pontos Corridos)</Radio>
-                        </Radio.Group>
-                    </Form.Item>
-
-                    {/* Add Form.useWatch to track format value */}
-                    <Form.Item noStyle dependencies={['format']}>
-                        {({ getFieldValue }) => {
-                            const format = getFieldValue('format');
-                            return (
-                                <>
-                                    {format === 'GROUPS_KNOCKOUT' && (
-                                        <Form.Item name="knockoutMode" label="Critério de Cruzamento (Mata-mata)" rules={[{ required: true }]}>
-                                            <Radio.Group>
-                                                <Radio value="RANDOM">Sorteio</Radio>
-                                                <Radio value="RANKED">Classificação (Melhores x Piores)</Radio>
-                                            </Radio.Group>
-                                        </Form.Item>
-                                    )}
-                                    {format === 'LEAGUE' && (
-                                        <Form.Item name="roundTrip" label="Turno e Returno (Ida e Volta)?">
-                                            <Radio.Group>
-                                                <Radio value={true}>Sim (Ida e Volta)</Radio>
-                                                <Radio value={false}>Não (Turno Único)</Radio>
-                                            </Radio.Group>
-                                        </Form.Item>
-                                    )}
-                                </>
-                            );
-                        }}
-                    </Form.Item>
-
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item name="teamCount" label="Qtd Times" rules={[{ required: true }]}>
-                                <InputNumber min={2} style={{ width: '100%' }} />
-                            </Form.Item>
-                        </Col>
-
-                        <Form.Item noStyle dependencies={['format']}>
-                            {({ getFieldValue }) => {
-                                const format = getFieldValue('format');
-                                if (format === 'GROUPS_KNOCKOUT') {
-                                    return (
-                                        <>
-                                            <Col span={12}>
-                                                <Form.Item name="groupCount" label="Qtd Grupos" rules={[{ required: true }]}>
-                                                    <InputNumber min={2} style={{ width: '100%' }} />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={12}>
-                                                <Form.Item
-                                                    name="advancingCount"
-                                                    label="Classificados/Grupo"
-                                                    dependencies={['teamCount', 'groupCount']}
-                                                    rules={[
-                                                        { required: true },
-                                                        ({ getFieldValue }) => ({
-                                                            validator(_, value) {
-                                                                const tc = getFieldValue('teamCount');
-                                                                const gc = getFieldValue('groupCount') || 1;
-                                                                const teamsPerGroup = tc / gc;
-                                                                if (value >= teamsPerGroup) {
-                                                                    return Promise.reject(new Error(`Deve ser menor que ${teamsPerGroup}`));
-                                                                }
-                                                                return Promise.resolve();
-                                                            },
-                                                        }),
-                                                    ]}
-                                                >
-                                                    <InputNumber min={1} style={{ width: '100%' }} />
-                                                </Form.Item>
-                                            </Col>
-                                        </>
-                                    );
-                                }
-                                return null;
-                            }}
-                        </Form.Item>
-                    </Row>
-                </Form>
-            </Modal>
+            <ChampionshipModal
+                open={isConfigModalOpen}
+                onCancel={() => setIsConfigModalOpen(false)}
+                onSave={handleUpdateConfig}
+                initialValues={championship}
+                isEditing={true}
+            />
 
             {/* Edit Teams Modal */}
             <Modal
