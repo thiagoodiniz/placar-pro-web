@@ -84,7 +84,7 @@ const CATEGORIES = ['Sub-13', 'Sub-15', 'Sub-17'];
 const generatePlayers = (teamName: string, count: number = 6) => {
     const firstNames = ['João', 'Lucas', 'Gabriel', 'Mateus', 'Pedro', 'Davi', 'Rafael', 'Bruno', 'Thiago', 'Felipe', 'Nicolas', 'Gustavo', 'Igor', 'Enzo', 'Leonardo'];
     const lastNames = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Rodrigues', 'Ferreira', 'Alves', 'Pereira', 'Lima', 'Gomes', 'Costa', 'Ribeiro', 'Martins', 'Carvalho'];
-    
+
     return Array.from({ length: count }, (_, i) => {
         const name = `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
         return {
@@ -95,7 +95,7 @@ const generatePlayers = (teamName: string, count: number = 6) => {
     });
 };
 
-const SEED_TEAMS = CLUBS.flatMap(club => 
+const SEED_TEAMS = CLUBS.flatMap(club =>
     CATEGORIES.map(cat => ({
         id: `t-${club.id}-${cat.toLowerCase()}`,
         name: `${club.name} ${cat}`,
@@ -119,7 +119,7 @@ const SEEDED_MATCHES: Match[] = [];
 const generateMatchResult = (hTeam: Team, aTeam: Team, hId: string, aId: string, biasName?: string) => {
     let hScore = Math.floor(Math.random() * 4);
     let aScore = Math.floor(Math.random() * 3);
-    
+
     // Bias the designated champion in group stage
     if (biasName) {
         if (hTeam.name === biasName) hScore += 2;
@@ -127,7 +127,7 @@ const generateMatchResult = (hTeam: Team, aTeam: Team, hId: string, aId: string,
     }
 
     const goals: Match['goals'] = [];
-    
+
     for (let g = 0; g < hScore; g++) {
         const p = hTeam.players![Math.floor(Math.random() * hTeam.players!.length)];
         goals.push({ id: uuidv4(), playerId: p.id, teamId: hId, playerName: p.name, teamName: hTeam.name });
@@ -144,13 +144,13 @@ const generateRoundRobinPairings = (teamIds: string[]) => {
     const teams = [...teamIds];
     const n = teams.length;
     const rounds: { round: number; matches: [string, string][] }[] = [];
-    
+
     // For odd number of teams, add a dummy team
     if (n % 2 !== 0) teams.push('BYE');
-    
+
     const numRounds = teams.length - 1;
     const half = teams.length / 2;
-    
+
     for (let r = 0; r < numRounds; r++) {
         const roundMatches: [string, string][] = [];
         for (let i = 0; i < half; i++) {
@@ -168,23 +168,23 @@ const generateRoundRobinPairings = (teamIds: string[]) => {
 };
 const populateChampionshipMatches = (championshipId: string, groups: Group[], progress: number, championName?: string) => {
     const isFinished = progress === 1.0;
-    
+
     // 1. Group Stage (Using Round-Robin Algorithm)
     groups.forEach(group => {
         const teamIds = group.teams.map(t => t.teamId);
         const schedule = generateRoundRobinPairings(teamIds);
-        
+
         schedule.forEach(roundData => {
             roundData.matches.forEach(([hId, aId], matchInRoundIdx) => {
                 // IMPORTANT: If finished, all matches active. If in-progress, only Round 1 is finished.
                 const activeMatch = isFinished || (progress > 0 && roundData.round === 1);
-                
+
                 const hTeam = SEED_TEAMS.find(t => t.id === hId)!;
                 const aTeam = SEED_TEAMS.find(t => t.id === aId)!;
-                
+
                 // Bias the champion in finished championships group stage to ensure qualification
                 const result = activeMatch ? generateMatchResult(hTeam, aTeam, hId, aId, isFinished ? championName : undefined) : { hScore: 0, aScore: 0, goals: [] };
-                
+
                 // Sequential dates per round
                 const dateOffset = (roundData.round - 1) * 7 + matchInRoundIdx;
 
@@ -197,7 +197,7 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
                     homeScore: result.hScore,
                     awayScore: result.aScore,
                     status: activeMatch ? MatchStatus.FINISHED : MatchStatus.SCHEDULED,
-                    phase: 'GRUPO',
+                    phase: 'GROUP',
                     round: roundData.round,
                     location: LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)],
                     dateTime: dayjs().add(activeMatch ? -dateOffset - 10 : dateOffset + 1, 'day').toISOString(),
@@ -241,7 +241,7 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
             const teamIds = group.teams.map(t => t.teamId);
             return getQualifiers(group.id, teamIds);
         });
-        
+
         const finalists: string[] = [];
 
         // --- SEMIFINALS ---
@@ -255,11 +255,11 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
                 const hTeam = SEED_TEAMS.find(t => t.id === pair.hId)!;
                 const aTeam = SEED_TEAMS.find(t => t.id === pair.aId)!;
                 let res = generateMatchResult(hTeam, aTeam, hTeam.id, aTeam.id);
-                
+
                 // If one of the teams is the designated winner, force them to advance
                 const mustWinH = hTeam.name === championName;
                 const mustWinA = aTeam.name === championName;
-                
+
                 if (mustWinH && res.hScore < res.aScore) [res.hScore, res.aScore] = [res.aScore, res.hScore];
                 if (mustWinA && res.aScore < res.hScore) [res.hScore, res.aScore] = [res.aScore, res.hScore];
 
@@ -301,9 +301,9 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
         const aId = finalists[1];
         const hTeam = SEED_TEAMS.find(t => t.id === hId)!;
         const aTeam = SEED_TEAMS.find(t => t.id === aId)!;
-        
+
         let res = generateMatchResult(hTeam, aTeam, hId, aId);
-        
+
         const mustWinH = hTeam.name === championName;
         const mustWinA = aTeam.name === championName;
 
@@ -338,10 +338,10 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
 
 const createChampionshipSets = () => {
     const championships: Championship[] = [];
-    
+
     CATEGORIES.forEach(cat => {
         const catSuffix = cat.toLowerCase();
-        
+
         const configs = [
             { id: 'brazilian', name: `Campeonato Brasileiro ${cat} - 2023`, teams: SEED_TEAMS.filter(t => t.id.endsWith(catSuffix)), progress: 1.0 },
             { id: 'rj', name: `Copa RJ ${cat}`, teams: SEED_TEAMS.filter(t => t.id.endsWith(catSuffix) && CARIOCA_IDS.some(cid => t.id.includes(cid))), progress: 0.5 },
@@ -385,7 +385,7 @@ const createChampionshipSets = () => {
             championships.push(championship);
         });
     });
-    
+
     return championships;
 };
 
