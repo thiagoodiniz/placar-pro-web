@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
     Button, Tag, Typography, Card, Row, Col, Progress, 
-    Spin, Tooltip, theme, Empty 
+    Spin, theme, Empty 
 } from 'antd';
 import { 
     PlusOutlined, ArrowRightOutlined, SettingOutlined, 
@@ -192,7 +192,7 @@ const ChampionshipsPage: React.FC = () => {
                                                 }}>
                                                     <TrophyOutlined style={{ color: '#d97706', fontSize: 18 }} />
                                                     <div>
-                                                        <Text size="small" type="secondary" style={{ fontSize: 10, display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Campeão</Text>
+                                                        <Text type="secondary" style={{ fontSize: 10, display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Campeão</Text>
                                                         <Text strong style={{ color: '#b8960c' }}>{champ.champion}</Text>
                                                     </div>
                                                 </div>

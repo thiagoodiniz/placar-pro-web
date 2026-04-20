@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Tabs, Table, Card, Typography, Space } from 'antd';
+import { Tabs, Table, Card, Typography, Space, Avatar } from 'antd';
 import { TrophyOutlined } from '@ant-design/icons';
 import api from '../services/api';
 

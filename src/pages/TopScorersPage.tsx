@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Card, Typography, Space, Tag, Avatar } from 'antd';
-import { FireOutlined, TrophyOutlined, UserOutlined } from '@ant-design/icons';
+import { FireOutlined, TrophyOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const { Title, Text } = Typography;
@@ -36,13 +36,14 @@ const TopScorersPage: React.FC = () => {
         {
             title: 'Jogador',
             key: 'player',
+            render: (record: any) => (
                 <Space>
                     <Avatar 
                         src={record.photoUrl} 
                         size="small" 
                         style={{ backgroundColor: '#f0f0f0' }}
                     >
-                        {!record.photoUrl && record.player[0].toUpperCase()}
+                        {!record.photoUrl && record.player?.[0].toUpperCase()}
                     </Avatar>
                     <div>
                         <div style={{ fontWeight: 'bold' }}>{record.player}</div>

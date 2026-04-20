@@ -32,6 +32,7 @@ interface Championship {
     matchMode?: 'RANDOM' | 'MANUALLY' | null;
     knockoutMode?: 'RANDOM' | 'RANKED' | null;
     teams: { teamId: string; team: Team }[];
+    champion?: string;
 }
 
 interface Group {

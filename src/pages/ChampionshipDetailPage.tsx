@@ -21,7 +21,6 @@ import {
     Avatar,
     InputNumber,
     DatePicker,
-    Radio,
     Spin,
     theme,
 } from 'antd';
@@ -38,7 +37,6 @@ import {
     DeleteOutlined,
     ArrowLeftOutlined,
     SettingOutlined,
-    UserOutlined
 } from '@ant-design/icons';
 import api from '../services/api';
 import dayjs from 'dayjs';

@@ -5,29 +5,16 @@ import {
     ColorPicker, Grid
 } from 'antd';
 import {
-    PlusOutlined, UserOutlined, SearchOutlined, EditOutlined,
+    PlusOutlined, SearchOutlined, EditOutlined,
     DeleteOutlined, TrophyOutlined, TeamOutlined, DesktopOutlined,
-    ClockCircleOutlined, ArrowRightOutlined, GlobalOutlined,
-    RightOutlined, BgColorsOutlined
+    ClockCircleOutlined, ArrowRightOutlined,
+    RightOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
-
-const GALAXY_COLORS = [
-    { label: 'Verde Esmeralda', value: '#16a34a' },
-    { label: 'Azul Real', value: '#2563eb' },
-    { label: 'Vermelho Paixão', value: '#dc2626' },
-    { label: 'Laranja Vibrante', value: '#ea580c' },
-    { label: 'Roxo Galáctico', value: '#7c3aed' },
-    { label: 'Ciano Profundo', value: '#0891b2' },
-    { label: 'Rosa Pink', value: '#be185d' },
-    { label: 'Preto Clássico', value: '#000000' },
-    { label: 'Branco Neve', value: '#ffffff' },
-    { label: 'Ouro Vitória', value: '#d97706' },
-];
 
 const TeamsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -318,7 +305,7 @@ const TeamsPage: React.FC = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                     <Space size={8}>
                                                         <ClockCircleOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
-                                                        <Text size="small" type="secondary" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>ÚLTIMO JOGO</Text>
+                                                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>ÚLTIMO JOGO</Text>
                                                     </Space>
                                                     {stats.lastMatch ? (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -348,7 +335,7 @@ const TeamsPage: React.FC = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                     <Space size={8}>
                                                         <ArrowRightOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
-                                                        <Text size="small" type="secondary" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>PRÓXIMO</Text>
+                                                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>PRÓXIMO</Text>
                                                     </Space>
                                                     {stats.nextMatch ? (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -495,7 +482,7 @@ const TeamsPage: React.FC = () => {
                             </div>
 
                             <List
-                                size="middle"
+                                size="small"
                                 dataSource={players}
                                 className="player-list-scroll"
                                 style={{ maxHeight: 280, overflowY: 'auto' }}
