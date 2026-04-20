@@ -3,6 +3,7 @@ import AppLayout from './components/Layout/AppLayout';
 import ChampionshipsPage from './pages/ChampionshipsPage';
 import ChampionshipDetailPage from './pages/ChampionshipDetailPage';
 import TeamsPage from './pages/TeamsPage';
+import TeamDetailPage from './pages/TeamDetailPage';
 
 function App() {
     return (
@@ -12,6 +13,8 @@ function App() {
                     <Route path="/championships" element={<ChampionshipsPage />} />
                     <Route path="/championships/:id" element={<ChampionshipDetailPage />} />
                     <Route path="/teams" element={<TeamsPage />} />
+                    <Route path="/teams/:id" element={<TeamDetailPage />} />
+                    <Route path="/teams/new" element={<TeamDetailPage />} />
                     <Route path="/" element={<Navigate to="/championships" replace />} />
                 </Routes>
             </AppLayout>
