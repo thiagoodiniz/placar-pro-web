@@ -601,15 +601,15 @@ const ChampionshipDetailPage: React.FC = () => {
             fixed: 'left' as const, 
             width: 140,
             render: (record: any) => (
-                <Space size={8}>
+                <Space size={8} style={{ width: '100%' }}>
                     <Avatar 
                         size="small" 
                         src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />} 
-                        style={{ backgroundColor: '#f0f0f0' }}
+                        style={{ backgroundColor: '#f0f0f0', flexShrink: 0 }}
                     >
                         {!record.teamLogoUrl && record.teamName[0].toUpperCase()}
                     </Avatar>
-                    <Text strong style={{ fontSize: 13 }}>{record.teamName}</Text>
+                    <Text strong style={{ fontSize: 13, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.teamName}</Text>
                 </Space>
             )
         },
@@ -976,7 +976,6 @@ const ChampionshipDetailPage: React.FC = () => {
                                         activeKey={activePhase}
                                         onChange={(key) => {
                                             setActivePhase(key);
-                                            // Reset round to newly selected phase's first round or uncompleted round
                                             const matchesInPhase = groupedMatches[key] || [];
                                             const incompleteMatch = matchesInPhase.find((m: any) => m.status !== 'FINISHED');
                                             if (incompleteMatch && incompleteMatch.round) {
@@ -1037,77 +1036,107 @@ const ChampionshipDetailPage: React.FC = () => {
                                                                 </div>
                                                                 <List
                                                                     dataSource={matchesByGroup[gName]}
-                                                                    renderItem={(m: any) => (
-                                                                        <List.Item style={{ border: 'none', padding: '0 0 12px 0' }}>
-                                                                            <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
-                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                                                                    <div style={{ flex: 1, textAlign: 'right', paddingRight: 12, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                                                                                        <Text strong style={{ fontSize: 13 }}>{m.homeTeam?.name || 'TBD'}</Text>
-                                                                                        <Avatar 
-                                                                                            size="small" 
-                                                                                            src={<img src={m.homeTeam?.logoUrl} alt={m.homeTeam?.name} referrerPolicy="no-referrer" />}
-                                                                                            style={{ backgroundColor: '#f5f5f5' }}
-                                                                                        >
-                                                                                            {!m.homeTeam?.logoUrl && m.homeTeam?.name?.[0].toUpperCase()}
-                                                                                        </Avatar>
+                                                                    renderItem={(m: any) => {
+                                                                        const getScorerSummary = (teamId: string) => {
+                                                                            if (!m.goals) return [];
+                                                                            const teamGoals = m.goals.filter((g: any) => g.teamId === teamId);
+                                                                            const counts: Record<string, number> = {};
+                                                                            teamGoals.forEach((g: any) => {
+                                                                                counts[g.playerName] = (counts[g.playerName] || 0) + 1;
+                                                                            });
+                                                                            return Object.entries(counts).map(([name, count]) => 
+                                                                                count > 1 ? `${name} (${count})` : name
+                                                                            );
+                                                                        };
+
+                                                                        const homeScorers = getScorerSummary(m.homeTeamId);
+                                                                        const awayScorers = getScorerSummary(m.awayTeamId);
+
+                                                                        return (
+                                                                            <List.Item style={{ border: 'none', padding: '0 0 12px 0' }}>
+                                                                                <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (homeScorers.length > 0 || awayScorers.length > 0) ? 4 : 10 }}>
+                                                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'right', paddingRight: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'TBD'}</Text>
+                                                                                            <Avatar 
+                                                                                                size="small" 
+                                                                                                src={<img src={m.homeTeam?.logoUrl} alt={m.homeTeam?.name} referrerPolicy="no-referrer" />}
+                                                                                                style={{ backgroundColor: '#f5f5f5', flexShrink: 0 }}
+                                                                                            >
+                                                                                                {!m.homeTeam?.logoUrl && m.homeTeam?.name?.[0].toUpperCase()}
+                                                                                            </Avatar>
+                                                                                        </div>
+                                                                                        <div style={{
+                                                                                            minWidth: 80, textAlign: 'center',
+                                                                                            background: m.status === 'FINISHED' ? token.colorFillSecondary : token.colorFillQuaternary,
+                                                                                            padding: '5px 14px', borderRadius: 8,
+                                                                                            fontWeight: 700, fontSize: 18,
+                                                                                            color: m.status === 'FINISHED' ? token.colorTextBase : token.colorTextSecondary,
+                                                                                            letterSpacing: '0.05em',
+                                                                                            flexShrink: 0
+                                                                                        }}>
+                                                                                            {m.status === 'FINISHED'
+                                                                                                ? (m.homePenalties !== undefined && m.awayPenalties !== undefined
+                                                                                                    ? `${m.homeScore}(${m.homePenalties}) × ${m.awayScore}(${m.awayPenalties})`
+                                                                                                    : `${m.homeScore} × ${m.awayScore}`)
+                                                                                                : 'vs'}
+                                                                                        </div>
+                                                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left', paddingLeft: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
+                                                                                            <Avatar 
+                                                                                                size="small" 
+                                                                                                src={<img src={m.awayTeam?.logoUrl} alt={m.awayTeam?.name} referrerPolicy="no-referrer" />}
+                                                                                                style={{ backgroundColor: '#f5f5f5', flexShrink: 0 }}
+                                                                                            >
+                                                                                                {!m.awayTeam?.logoUrl && m.awayTeam?.name?.[0].toUpperCase()}
+                                                                                            </Avatar>
+                                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.awayTeam?.name || 'TBD'}</Text>
+                                                                                        </div>
                                                                                     </div>
-                                                                                    <div style={{
-                                                                                        minWidth: 80, textAlign: 'center',
-                                                                                        background: m.status === 'FINISHED' ? token.colorFillSecondary : token.colorFillQuaternary,
-                                                                                        padding: '5px 14px', borderRadius: 8,
-                                                                                        fontWeight: 700, fontSize: 20,
-                                                                                        color: m.status === 'FINISHED' ? token.colorTextBase : token.colorTextSecondary,
-                                                                                        letterSpacing: '0.05em',
-                                                                                    }}>
-                                                                                        {m.status === 'FINISHED'
-                                                                                            ? (m.homePenalties !== undefined && m.awayPenalties !== undefined
-                                                                                                ? `${m.homeScore}(${m.homePenalties}) × ${m.awayScore}(${m.awayPenalties})`
-                                                                                                : `${m.homeScore} × ${m.awayScore}`)
-                                                                                            : 'vs'}
-                                                                                    </div>
-                                                                                    <div style={{ flex: 1, textAlign: 'left', paddingLeft: 12, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
-                                                                                        <Avatar 
-                                                                                            size="small" 
-                                                                                            src={<img src={m.awayTeam?.logoUrl} alt={m.awayTeam?.name} referrerPolicy="no-referrer" />}
-                                                                                            style={{ backgroundColor: '#f5f5f5' }}
-                                                                                        >
-                                                                                            {!m.awayTeam?.logoUrl && m.awayTeam?.name?.[0].toUpperCase()}
-                                                                                        </Avatar>
-                                                                                        <Text strong style={{ fontSize: 13 }}>{m.awayTeam?.name || 'TBD'}</Text>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div style={{
-                                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                                    fontSize: '12px', color: token.colorTextSecondary,
-                                                                                    borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 9,
-                                                                                    flexWrap: 'wrap', gap: '6px 0',
-                                                                                }}>
-                                                                                    <Space split={<Divider type="vertical" />}>
-                                                                                        <span><EnvironmentOutlined /> {m.location || 'Local TBD'}</span>
-                                                                                        <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora TBD'}</span>
-                                                                                    </Space>
-                                                                                    {championship.status !== 'FINISHED' && (
-                                                                                        <Space>
-                                                                                            <Button size="small" icon={<EditOutlined />} onClick={() => {
-                                                                                                setSelectedMatch(m);
-                                                                                                detailsForm.setFieldsValue({
-                                                                                                    location: m.location,
-                                                                                                    dateTime: m.dateTime ? dayjs(m.dateTime) : null
-                                                                                                });
-                                                                                                setIsDetailsModalOpen(true);
-                                                                                            }} />
-                                                                                            <Button
-                                                                                                size="small"
-                                                                                                type="primary"
-                                                                                                disabled={championship.status !== 'STARTED'}
-                                                                                                onClick={() => handleOpenResultModal(m)}
-                                                                                            >Placar</Button>
-                                                                                        </Space>
+
+                                                                                    {(homeScorers.length > 0 || awayScorers.length > 0) && (
+                                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                                                                                            <div style={{ flex: 1, textAlign: 'right', paddingRight: 50, color: token.colorTextSecondary, fontSize: 11 }}>
+                                                                                                {homeScorers.map(s => <div key={s}>{s}</div>)}
+                                                                                            </div>
+                                                                                            <div style={{ flex: 1, textAlign: 'left', paddingLeft: 50, color: token.colorTextSecondary, fontSize: 11 }}>
+                                                                                                {awayScorers.map(s => <div key={s}>{s}</div>)}
+                                                                                            </div>
+                                                                                        </div>
                                                                                     )}
-                                                                                </div>
-                                                                            </Card>
-                                                                        </List.Item>
-                                                                    )}
+
+                                                                                    <div style={{
+                                                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                                        fontSize: '12px', color: token.colorTextSecondary,
+                                                                                        borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 9,
+                                                                                        flexWrap: 'wrap', gap: '6px 0',
+                                                                                    }}>
+                                                                                        <Space split={<Divider type="vertical" />}>
+                                                                                            <span><EnvironmentOutlined /> {m.location || 'Local TBD'}</span>
+                                                                                            <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora TBD'}</span>
+                                                                                        </Space>
+                                                                                        {championship.status !== 'FINISHED' && (
+                                                                                            <Space>
+                                                                                                <Button size="small" icon={<EditOutlined />} onClick={() => {
+                                                                                                    setSelectedMatch(m);
+                                                                                                    detailsForm.setFieldsValue({
+                                                                                                        location: m.location,
+                                                                                                        dateTime: m.dateTime ? dayjs(m.dateTime) : null
+                                                                                                    });
+                                                                                                    setIsDetailsModalOpen(true);
+                                                                                                }} />
+                                                                                                <Button
+                                                                                                    size="small"
+                                                                                                    type="primary"
+                                                                                                    disabled={championship.status !== 'STARTED'}
+                                                                                                    onClick={() => handleOpenResultModal(m)}
+                                                                                                >Placar</Button>
+                                                                                            </Space>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </Card>
+                                                                            </List.Item>
+                                                                        );
+                                                                    }}
                                                                 />
                                                             </div>
                                                         ))}

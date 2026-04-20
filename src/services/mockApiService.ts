@@ -116,9 +116,16 @@ const SEEDED_GROUPS: Group[] = [];
 const SEEDED_MATCHES: Match[] = [];
 
 // Helper helper to generate scores & goals
-const generateMatchResult = (hTeam: Team, aTeam: Team, hId: string, aId: string) => {
-    const hScore = Math.floor(Math.random() * 4);
-    const aScore = Math.floor(Math.random() * 3);
+const generateMatchResult = (hTeam: Team, aTeam: Team, hId: string, aId: string, biasName?: string) => {
+    let hScore = Math.floor(Math.random() * 4);
+    let aScore = Math.floor(Math.random() * 3);
+    
+    // Bias the designated champion in group stage
+    if (biasName) {
+        if (hTeam.name === biasName) hScore += 2;
+        if (aTeam.name === biasName) aScore += 2;
+    }
+
     const goals: Match['goals'] = [];
     
     for (let g = 0; g < hScore; g++) {
@@ -159,8 +166,6 @@ const generateRoundRobinPairings = (teamIds: string[]) => {
     }
     return rounds;
 };
-
-// Advanced Match Generator
 const populateChampionshipMatches = (championshipId: string, groups: Group[], progress: number, championName?: string) => {
     const isFinished = progress === 1.0;
     
@@ -177,7 +182,8 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
                 const hTeam = SEED_TEAMS.find(t => t.id === hId)!;
                 const aTeam = SEED_TEAMS.find(t => t.id === aId)!;
                 
-                const result = activeMatch ? generateMatchResult(hTeam, aTeam, hId, aId) : { hScore: 0, aScore: 0, goals: [] };
+                // Bias the champion in finished championships group stage to ensure qualification
+                const result = activeMatch ? generateMatchResult(hTeam, aTeam, hId, aId, isFinished ? championName : undefined) : { hScore: 0, aScore: 0, goals: [] };
                 
                 // Sequential dates per round
                 const dateOffset = (roundData.round - 1) * 7 + matchInRoundIdx;
@@ -201,9 +207,41 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
         });
     });
 
+    // Helper to calculate real Top 2 from finished group matches
+    const getQualifiers = (groupId: string, teamIds: string[]) => {
+        const stats: Record<string, { points: number; gd: number; gp: number; id: string }> = {};
+        teamIds.forEach(id => stats[id] = { points: 0, gd: 0, gp: 0, id });
+
+        SEEDED_MATCHES
+            .filter(m => m.championshipId === championshipId && m.groupId === groupId && m.status === MatchStatus.FINISHED)
+            .forEach(m => {
+                stats[m.homeTeamId].gp += m.homeScore;
+                stats[m.awayTeamId].gp += m.awayScore;
+                stats[m.homeTeamId].gd += (m.homeScore - m.awayScore);
+                stats[m.awayTeamId].gd += (m.awayScore - m.homeScore);
+
+                if (m.homeScore > m.awayScore) stats[m.homeTeamId].points += 3;
+                else if (m.awayScore > m.homeScore) stats[m.awayTeamId].points += 3;
+                else {
+                    stats[m.homeTeamId].points += 1;
+                    stats[m.awayTeamId].points += 1;
+                }
+            });
+
+        return Object.values(stats)
+            .sort((a, b) => b.points - a.points || b.gd - a.gd || b.gp - a.gp)
+            .slice(0, 2)
+            .map(s => ({ teamId: s.id }));
+    };
+
     // 2. Knockout Stage (only for finished or very advanced)
     if (isFinished) {
-        const playoffTeams = groups.flatMap(g => g.teams.slice(0, 2));
+        // GET REAL QUALIFIERS BASED ON POINTS
+        const playoffTeams = groups.flatMap(group => {
+            const teamIds = group.teams.map(t => t.teamId);
+            return getQualifiers(group.id, teamIds);
+        });
+        
         const finalists: string[] = [];
 
         // --- SEMIFINALS ---
