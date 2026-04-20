@@ -39,7 +39,7 @@ const TopScorersPage: React.FC = () => {
             render: (record: any) => (
                 <Space>
                     <Avatar 
-                        src={record.photoUrl} 
+                        src={<img src={record.photoUrl} alt={record.player} referrerPolicy="no-referrer" />} 
                         size="small" 
                         style={{ backgroundColor: '#f0f0f0' }}
                     >

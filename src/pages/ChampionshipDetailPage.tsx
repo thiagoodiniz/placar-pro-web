@@ -604,7 +604,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 <Space size={8}>
                     <Avatar 
                         size="small" 
-                        src={record.teamLogoUrl} 
+                        src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />} 
                         style={{ backgroundColor: '#f0f0f0' }}
                     >
                         {!record.teamLogoUrl && record.teamName[0].toUpperCase()}
@@ -1045,7 +1045,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                                                                         <Text strong style={{ fontSize: 13 }}>{m.homeTeam?.name || 'TBD'}</Text>
                                                                                         <Avatar 
                                                                                             size="small" 
-                                                                                            src={m.homeTeam?.logoUrl}
+                                                                                            src={<img src={m.homeTeam?.logoUrl} alt={m.homeTeam?.name} referrerPolicy="no-referrer" />}
                                                                                             style={{ backgroundColor: '#f5f5f5' }}
                                                                                         >
                                                                                             {!m.homeTeam?.logoUrl && m.homeTeam?.name?.[0].toUpperCase()}
@@ -1068,7 +1068,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                                                                     <div style={{ flex: 1, textAlign: 'left', paddingLeft: 12, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
                                                                                         <Avatar 
                                                                                             size="small" 
-                                                                                            src={m.awayTeam?.logoUrl}
+                                                                                            src={<img src={m.awayTeam?.logoUrl} alt={m.awayTeam?.name} referrerPolicy="no-referrer" />}
                                                                                             style={{ backgroundColor: '#f5f5f5' }}
                                                                                         >
                                                                                             {!m.awayTeam?.logoUrl && m.awayTeam?.name?.[0].toUpperCase()}
@@ -1151,7 +1151,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                                     {index + 1}
                                                 </div>
                                                 <Avatar 
-                                                    src={item.photoUrl} 
+                                                    src={<img src={item.photoUrl} alt={item.player} referrerPolicy="no-referrer" />} 
                                                     size={32}
                                                     style={{ backgroundColor: '#f0f0f0' }}
                                                 >

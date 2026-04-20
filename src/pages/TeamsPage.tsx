@@ -248,7 +248,7 @@ const TeamsPage: React.FC = () => {
                                                 zIndex: 2
                                             }}>
                                                 {team.logoUrl ? (
-                                                    <img src={team.logoUrl} alt={team.name} style={{ width: '100%', height: '100%', objectFit: 'scale-down' }} />
+                                                    <img src={team.logoUrl} alt={team.name} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'scale-down' }} />
                                                 ) : (
                                                     <div style={{
                                                         width: '100%', height: '100%',
@@ -502,7 +502,7 @@ const TeamsPage: React.FC = () => {
                                         <Space size={12}>
                                             <Avatar
                                                 size="large"
-                                                src={player.photoUrl}
+                                                src={<img src={player.photoUrl} alt={player.name} referrerPolicy="no-referrer" />}
                                                 style={{
                                                     backgroundColor: token.colorFillSecondary,
                                                     color: token.colorText,

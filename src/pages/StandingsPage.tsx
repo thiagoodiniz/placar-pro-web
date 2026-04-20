@@ -59,7 +59,7 @@ const StandingsPage: React.FC = () => {
                 <Space size={8}>
                     <Avatar 
                         size="small" 
-                        src={record.teamLogoUrl} 
+                        src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />}
                         style={{ backgroundColor: '#f0f0f0' }}
                     >
                         {!record.teamLogoUrl && record.teamName[0].toUpperCase()}
