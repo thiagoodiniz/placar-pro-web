@@ -72,7 +72,7 @@ const SEED_DATA = {
         {
             id: 't1',
             name: 'Flamengo',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/5981/image/small',
+            logoUrl: '/proxy-img/team/5981/image/small',
             primaryColor: '#C8102E',
             secondaryColor: '#000000',
             players: [

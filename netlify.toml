@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/proxy-img/*"
+  to = "https://api.sofascore.app/api/v1/:splat"
+  status = 200
+  force = true
