@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import dayjs from 'dayjs';
 
 export enum ChampionshipStatus {
     DRAFT = 'DRAFT',
@@ -67,111 +68,296 @@ const STORAGE_KEYS = {
     MATCHES: 'placarpro_matches'
 };
 
+const CLUBS = [
+    { id: 'flamengo', name: 'Flamengo', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/orE554NToSkH6nuwofe7Yg_96x96.png', color1: '#C8102E', color2: '#000000' },
+    { id: 'vasco', name: 'Vasco', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/hHwT8LwRmYCAGxQ-STLxYA_96x96.png', color1: '#000000', color2: '#FFFFFF' },
+    { id: 'fluminense', name: 'Fluminense', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/fCMxMMDF2AZPU7LzYKSlig_96x96.png', color1: '#7A263A', color2: '#006341' },
+    { id: 'botafogo', name: 'Botafogo', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/KLDWYp-H8CAOT9H_JgizRg_96x96.png', color1: '#000000', color2: '#FFFFFF' },
+    { id: 'palmeiras', name: 'Palmeiras', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/7spurne-xDt2p6C0imYYNA_96x96.png', color1: '#006437', color2: '#FFFFFF' },
+    { id: 'santos', name: 'Santos', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/VHdNOT6wWOw_vJ38GMjMzg_96x96.png', color1: '#FFFFFF', color2: '#000000' },
+    { id: 'corinthians', name: 'Corinthians', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/tCMSqgXVHROpdCpQhzTo1g_96x96.png', color1: '#000000', color2: '#FFFFFF' },
+    { id: 'saopaulo', name: 'São Paulo', logo: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/4w2Z97Hf9CSOqICK3a8AxQ_96x96.png', color1: '#E60026', color2: '#000000' },
+];
+
+const CATEGORIES = ['Sub-13', 'Sub-15', 'Sub-17'];
+
+const generatePlayers = (teamName: string, count: number = 6) => {
+    const firstNames = ['João', 'Lucas', 'Gabriel', 'Mateus', 'Pedro', 'Davi', 'Rafael', 'Bruno', 'Thiago', 'Felipe', 'Nicolas', 'Gustavo', 'Igor', 'Enzo', 'Leonardo'];
+    const lastNames = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Rodrigues', 'Ferreira', 'Alves', 'Pereira', 'Lima', 'Gomes', 'Costa', 'Ribeiro', 'Martins', 'Carvalho'];
+    
+    return Array.from({ length: count }, (_, i) => {
+        const name = `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+        return {
+            id: `p-${teamName}-${i}`,
+            name,
+            photoUrl: `https://api.dicebear.com/7.x/personas/png?seed=${name.replace(' ', '')}`
+        };
+    });
+};
+
+const SEED_TEAMS = CLUBS.flatMap(club => 
+    CATEGORIES.map(cat => ({
+        id: `t-${club.id}-${cat.toLowerCase()}`,
+        name: `${club.name} ${cat}`,
+        logoUrl: club.logo,
+        primaryColor: club.color1,
+        secondaryColor: club.color2,
+        players: generatePlayers(`${club.name}-${cat}`)
+    }))
+);
+
+// Agrupamentos de Clubes
+const CARIOCA_IDS = ['flamengo', 'vasco', 'fluminense', 'botafogo'];
+const PAULISTA_IDS = ['palmeiras', 'santos', 'corinthians', 'saopaulo'];
+const LOCATIONS = ['Maracanã', 'Allianz Parque', 'Morumbi', 'Neo Química Arena', 'São Januário', 'Nilton Santos', 'Vila Belmiro'];
+
+// Global storage for seeded data
+const SEEDED_GROUPS: Group[] = [];
+const SEEDED_MATCHES: Match[] = [];
+
+// Helper helper to generate scores & goals
+const generateMatchResult = (hTeam: Team, aTeam: Team, hId: string, aId: string) => {
+    const hScore = Math.floor(Math.random() * 4);
+    const aScore = Math.floor(Math.random() * 3);
+    const goals: Match['goals'] = [];
+    
+    for (let g = 0; g < hScore; g++) {
+        const p = hTeam.players![Math.floor(Math.random() * hTeam.players!.length)];
+        goals.push({ id: uuidv4(), playerId: p.id, teamId: hId, playerName: p.name, teamName: hTeam.name });
+    }
+    for (let g = 0; g < aScore; g++) {
+        const p = aTeam.players![Math.floor(Math.random() * aTeam.players!.length)];
+        goals.push({ id: uuidv4(), playerId: p.id, teamId: aId, playerName: p.name, teamName: aTeam.name });
+    }
+    return { hScore, aScore, goals };
+};
+
+// Proper Round-Robin Generator (Circle Method)
+const generateRoundRobinPairings = (teamIds: string[]) => {
+    const teams = [...teamIds];
+    const n = teams.length;
+    const rounds: { round: number; matches: [string, string][] }[] = [];
+    
+    // For odd number of teams, add a dummy team
+    if (n % 2 !== 0) teams.push('BYE');
+    
+    const numRounds = teams.length - 1;
+    const half = teams.length / 2;
+    
+    for (let r = 0; r < numRounds; r++) {
+        const roundMatches: [string, string][] = [];
+        for (let i = 0; i < half; i++) {
+            const h = teams[i];
+            const a = teams[teams.length - 1 - i];
+            if (h !== 'BYE' && a !== 'BYE') {
+                roundMatches.push([h, a]);
+            }
+        }
+        rounds.push({ round: r + 1, matches: roundMatches });
+        // Rotate: keep index 0 fixed, rotate others
+        teams.splice(1, 0, teams.pop()!);
+    }
+    return rounds;
+};
+
+// Advanced Match Generator
+const populateChampionshipMatches = (championshipId: string, groups: Group[], progress: number, championName?: string) => {
+    const isFinished = progress === 1.0;
+    
+    // 1. Group Stage (Using Round-Robin Algorithm)
+    groups.forEach(group => {
+        const teamIds = group.teams.map(t => t.teamId);
+        const schedule = generateRoundRobinPairings(teamIds);
+        
+        schedule.forEach(roundData => {
+            roundData.matches.forEach(([hId, aId], matchInRoundIdx) => {
+                // IMPORTANT: If finished, all matches active. If in-progress, only Round 1 is finished.
+                const activeMatch = isFinished || (progress > 0 && roundData.round === 1);
+                
+                const hTeam = SEED_TEAMS.find(t => t.id === hId)!;
+                const aTeam = SEED_TEAMS.find(t => t.id === aId)!;
+                
+                const result = activeMatch ? generateMatchResult(hTeam, aTeam, hId, aId) : { hScore: 0, aScore: 0, goals: [] };
+                
+                // Sequential dates per round
+                const dateOffset = (roundData.round - 1) * 7 + matchInRoundIdx;
+
+                SEEDED_MATCHES.push({
+                    id: uuidv4(),
+                    championshipId,
+                    groupId: group.id,
+                    homeTeamId: hId,
+                    awayTeamId: aId,
+                    homeScore: result.hScore,
+                    awayScore: result.aScore,
+                    status: activeMatch ? MatchStatus.FINISHED : MatchStatus.SCHEDULED,
+                    phase: 'GRUPO',
+                    round: roundData.round,
+                    location: LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)],
+                    dateTime: dayjs().add(activeMatch ? -dateOffset - 10 : dateOffset + 1, 'day').toISOString(),
+                    goals: result.goals
+                });
+            });
+        });
+    });
+
+    // 2. Knockout Stage (only for finished or very advanced)
+    if (isFinished) {
+        const playoffTeams = groups.flatMap(g => g.teams.slice(0, 2));
+        const finalists: string[] = [];
+
+        // --- SEMIFINALS ---
+        if (playoffTeams.length === 4) {
+            const semiPairs = [
+                { hId: playoffTeams[0].teamId, aId: playoffTeams[3].teamId }, // 1A vs 2B
+                { hId: playoffTeams[2].teamId, aId: playoffTeams[1].teamId }  // 1B vs 2A
+            ];
+
+            semiPairs.forEach((pair, idx) => {
+                const hTeam = SEED_TEAMS.find(t => t.id === pair.hId)!;
+                const aTeam = SEED_TEAMS.find(t => t.id === pair.aId)!;
+                let res = generateMatchResult(hTeam, aTeam, hTeam.id, aTeam.id);
+                
+                // If one of the teams is the designated winner, force them to advance
+                const mustWinH = hTeam.name === championName;
+                const mustWinA = aTeam.name === championName;
+                
+                if (mustWinH && res.hScore < res.aScore) [res.hScore, res.aScore] = [res.aScore, res.hScore];
+                if (mustWinA && res.aScore < res.hScore) [res.hScore, res.aScore] = [res.aScore, res.hScore];
+
+                let hPen: number | undefined, aPen: number | undefined;
+                if (res.hScore === res.aScore) {
+                    if (mustWinH) { hPen = 5; aPen = 3; }
+                    else if (mustWinA) { hPen = 3; aPen = 5; }
+                    else { hPen = 5; aPen = 4; }
+                }
+
+                SEEDED_MATCHES.push({
+                    id: uuidv4(),
+                    championshipId,
+                    homeTeamId: hTeam.id,
+                    awayTeamId: aTeam.id,
+                    homeScore: res.hScore,
+                    awayScore: res.aScore,
+                    homePenalties: hPen,
+                    awayPenalties: aPen,
+                    status: MatchStatus.FINISHED,
+                    phase: 'SEMIFINAL',
+                    round: 1,
+                    location: LOCATIONS[idx % LOCATIONS.length],
+                    dateTime: dayjs().add(-3, 'day').toISOString(),
+                    goals: res.goals
+                });
+
+                // Determine winner to advance to final
+                const winnerId = (res.hScore > res.aScore || (hPen !== undefined && aPen !== undefined && hPen > aPen)) ? hTeam.id : aTeam.id;
+                finalists.push(winnerId);
+            });
+        } else {
+            // No Semis, first 2 go to final
+            finalists.push(playoffTeams[0].teamId, playoffTeams[1].teamId);
+        }
+
+        // --- THE FINAL ---
+        const hId = finalists[0];
+        const aId = finalists[1];
+        const hTeam = SEED_TEAMS.find(t => t.id === hId)!;
+        const aTeam = SEED_TEAMS.find(t => t.id === aId)!;
+        
+        let res = generateMatchResult(hTeam, aTeam, hId, aId);
+        
+        const mustWinH = hTeam.name === championName;
+        const mustWinA = aTeam.name === championName;
+
+        if (mustWinH && res.hScore < res.aScore) [res.hScore, res.aScore] = [res.aScore, res.hScore];
+        if (mustWinA && res.aScore < res.hScore) [res.hScore, res.aScore] = [res.aScore, res.hScore];
+
+        let hPen: number | undefined, aPen: number | undefined;
+        if (res.hScore === res.aScore) {
+            if (mustWinH) { hPen = 5; aPen = 3; }
+            else if (mustWinA) { hPen = 3; aPen = 5; }
+            else { hPen = 5; aPen = 4; }
+        }
+
+        SEEDED_MATCHES.push({
+            id: uuidv4(),
+            championshipId,
+            homeTeamId: hId,
+            awayTeamId: aId,
+            homeScore: res.hScore,
+            awayScore: res.aScore,
+            homePenalties: hPen,
+            awayPenalties: aPen,
+            status: MatchStatus.FINISHED,
+            phase: 'FINAL',
+            round: 1,
+            location: 'Maracanã',
+            dateTime: dayjs().add(-1, 'day').toISOString(),
+            goals: res.goals
+        });
+    }
+};
+
+const createChampionshipSets = () => {
+    const championships: Championship[] = [];
+    
+    CATEGORIES.forEach(cat => {
+        const catSuffix = cat.toLowerCase();
+        
+        const configs = [
+            { id: 'brazilian', name: `Campeonato Brasileiro ${cat} - 2023`, teams: SEED_TEAMS.filter(t => t.id.endsWith(catSuffix)), progress: 1.0 },
+            { id: 'rj', name: `Copa RJ ${cat}`, teams: SEED_TEAMS.filter(t => t.id.endsWith(catSuffix) && CARIOCA_IDS.some(cid => t.id.includes(cid))), progress: 0.5 },
+            { id: 'sp', name: `Copa SP ${cat}`, teams: SEED_TEAMS.filter(t => t.id.endsWith(catSuffix) && PAULISTA_IDS.some(cid => t.id.includes(cid))), progress: 0.5 }
+        ];
+
+        configs.forEach(conf => {
+            const champId = `c-${conf.id}-${catSuffix}`;
+            const groupCount = conf.teams.length > 4 ? 2 : 1;
+            const champion = conf.progress === 1.0 ? conf.teams[Math.floor(Math.random() * conf.teams.length)].name : undefined;
+
+            const championship: Championship = {
+                id: champId,
+                name: conf.name,
+                format: 'GROUPS_KNOCKOUT',
+                teamCount: conf.teams.length,
+                groupCount,
+                advancingCount: 2,
+                status: conf.progress === 1.0 ? ChampionshipStatus.FINISHED : ChampionshipStatus.STARTED,
+                champion,
+                teams: conf.teams.map(t => ({ teamId: t.id, team: t as any }))
+            };
+
+            // Generate Groups
+            const currentChampGroups: Group[] = [];
+            const teamsPerGroup = Math.ceil(conf.teams.length / groupCount);
+            for (let i = 0; i < groupCount; i++) {
+                const groupTeams = conf.teams.slice(i * teamsPerGroup, (i + 1) * teamsPerGroup);
+                const group: Group = {
+                    id: `g-${champId}-${i}`,
+                    championshipId: champId,
+                    name: `Grupo ${String.fromCharCode(65 + i)}`,
+                    teams: groupTeams.map(t => ({ teamId: t.id, team: t as any }))
+                };
+                SEEDED_GROUPS.push(group);
+                currentChampGroups.push(group);
+            }
+
+            // Generate all matches
+            populateChampionshipMatches(champId, currentChampGroups, conf.progress, champion);
+            championships.push(championship);
+        });
+    });
+    
+    return championships;
+};
+
+const SEED_CHAMPIONSHIPS = createChampionshipSets();
+
 const SEED_DATA = {
-    teams: [
-        {
-            id: 't1',
-            name: 'Flamengo',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/orE554NToSkH6nuwofe7Yg_96x96.png',
-            primaryColor: '#C8102E',
-            secondaryColor: '#000000',
-            players: [
-                { id: 'p1', name: 'Gabigol', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Gabigol' },
-                { id: 'p2', name: 'Arrascaeta', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Arrascaeta' }
-            ]
-        },
-        {
-            id: 't2',
-            name: 'Vasco',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/hHwT8LwRmYCAGxQ-STLxYA_96x96.png',
-            primaryColor: '#000000',
-            secondaryColor: '#FFFFFF',
-            players: [
-                { id: 'p3', name: 'Payet', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Payet' },
-                { id: 'p4', name: 'Vegetti', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Vegetti' }
-            ]
-        },
-        {
-            id: 't3',
-            name: 'Fluminense',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/fCMxMMDF2AZPU7LzYKSlig_96x96.png',
-            primaryColor: '#7A263A',
-            secondaryColor: '#006341',
-            players: [
-                { id: 'p5', name: 'Cano', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Cano' },
-                { id: 'p6', name: 'Ganso', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Ganso' }
-            ]
-        },
-        {
-            id: 't4',
-            name: 'Botafogo',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/KLDWYp-H8CAOT9H_JgizRg_96x96.png',
-            primaryColor: '#000000',
-            secondaryColor: '#FFFFFF',
-            players: [
-                { id: 'p7', name: 'Tiquinho', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Tiquinho' },
-                { id: 'p8', name: 'Junior Santos', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=JuniorSantos' }
-            ]
-        },
-        {
-            id: 't5',
-            name: 'Palmeiras',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/7spurne-xDt2p6C0imYYNA_96x96.png',
-            primaryColor: '#006437',
-            secondaryColor: '#FFFFFF',
-            players: [
-                { id: 'p9', name: 'Endrick', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Endrick' },
-                { id: 'p10', name: 'Veiga', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Veiga' }
-            ]
-        },
-        {
-            id: 't6',
-            name: 'Santos',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/VHdNOT6wWOw_vJ38GMjMzg_96x96.png',
-            primaryColor: '#FFFFFF',
-            secondaryColor: '#000000',
-            players: [
-                { id: 'p11', name: 'Gil', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Gil' },
-                { id: 'p12', name: 'Otero', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Otero' }
-            ]
-        },
-        {
-            id: 't7',
-            name: 'Corinthians',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/tCMSqgXVHROpdCpQhzTo1g_96x96.png',
-            primaryColor: '#000000',
-            secondaryColor: '#FFFFFF',
-            players: [
-                { id: 'p13', name: 'Yuri Alberto', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=YuriAlberto' },
-                { id: 'p14', name: 'Garro', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Garro' }
-            ]
-        },
-        {
-            id: 't8',
-            name: 'São Paulo',
-            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/4w2Z97Hf9CSOqICK3a8AxQ_96x96.png',
-            primaryColor: '#E60026',
-            secondaryColor: '#000000',
-            players: [
-                { id: 'p15', name: 'Calleri', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=Calleri' },
-                { id: 'p16', name: 'Lucas', photoUrl: 'https://api.dicebear.com/7.x/personas/png?seed=LucasMoura' }
-            ]
-        }
-    ],
-    championships: [
-        {
-            id: 'c1',
-            name: 'Copa Mock 2024',
-            format: 'GROUPS_KNOCKOUT',
-            teamCount: 8,
-            groupCount: 2,
-            advancingCount: 2,
-            status: ChampionshipStatus.DRAFT,
-            matchMode: null,
-            knockoutMode: 'RANDOM',
-            teams: []
-        }
-    ]
+    teams: SEED_TEAMS,
+    championships: SEED_CHAMPIONSHIPS,
+    matches: SEEDED_MATCHES,
+    groups: SEEDED_GROUPS
 };
 
 class MockApiService {
@@ -188,8 +374,8 @@ class MockApiService {
         localStorage.clear();
         this.setData(STORAGE_KEYS.TEAMS, SEED_DATA.teams);
         this.setData(STORAGE_KEYS.CHAMPIONSHIPS, SEED_DATA.championships);
-        this.setData(STORAGE_KEYS.GROUPS, []);
-        this.setData(STORAGE_KEYS.MATCHES, []);
+        this.setData(STORAGE_KEYS.GROUPS, SEED_DATA.groups);
+        this.setData(STORAGE_KEYS.MATCHES, SEED_DATA.matches);
     }
 
     init() {
@@ -202,13 +388,21 @@ class MockApiService {
     async getChampionships() {
         const championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
         const allTeams = this.getData<Team>(STORAGE_KEYS.TEAMS);
-        return championships.map(c => ({
-            ...c,
-            teams: c.teams.map(ct => ({
-                ...ct,
-                team: allTeams.find(t => t.id === ct.teamId) || { id: ct.teamId, name: 'Unknown' }
+        return championships
+            .map(c => ({
+                ...c,
+                teams: c.teams.map(ct => ({
+                    ...ct,
+                    team: allTeams.find(t => t.id === ct.teamId) || { id: ct.teamId, name: 'Unknown' }
+                }))
             }))
-        }));
+            .sort((a, b) => {
+                // Finished last
+                if (a.status === ChampionshipStatus.FINISHED && b.status !== ChampionshipStatus.FINISHED) return 1;
+                if (a.status !== ChampionshipStatus.FINISHED && b.status === ChampionshipStatus.FINISHED) return -1;
+                // Otherwise alphabetical
+                return a.name.localeCompare(b.name);
+            });
     }
 
     async createChampionship(data: any) {
@@ -363,8 +557,9 @@ class MockApiService {
         const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
         const championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
         const matches = this.getData<Match>(STORAGE_KEYS.MATCHES);
+        const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
-        return teams.map(team => {
+        return sortedTeams.map(team => {
             const participatedChampionships = championships.filter(c =>
                 c.teams.some(ct => ct.teamId === team.id)
             ).map(c => ({ id: c.id, name: c.name, status: c.status }));
