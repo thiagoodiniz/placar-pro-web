@@ -72,7 +72,7 @@ const SEED_DATA = {
         {
             id: 't1',
             name: 'Flamengo',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/5981/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/orE554NToSkH6nuwofe7Yg_96x96.png',
             primaryColor: '#C8102E',
             secondaryColor: '#000000',
             players: [
@@ -83,7 +83,7 @@ const SEED_DATA = {
         {
             id: 't2',
             name: 'Vasco',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1974/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/hHwT8LwRmYCAGxQ-STLxYA_96x96.png',
             primaryColor: '#000000',
             secondaryColor: '#FFFFFF',
             players: [
@@ -94,7 +94,7 @@ const SEED_DATA = {
         {
             id: 't3',
             name: 'Fluminense',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1961/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/fCMxMMDF2AZPU7LzYKSlig_96x96.png',
             primaryColor: '#7A263A',
             secondaryColor: '#006341',
             players: [
@@ -105,7 +105,7 @@ const SEED_DATA = {
         {
             id: 't4',
             name: 'Botafogo',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1958/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/KLDWYp-H8CAOT9H_JgizRg_96x96.png',
             primaryColor: '#000000',
             secondaryColor: '#FFFFFF',
             players: [
@@ -116,7 +116,7 @@ const SEED_DATA = {
         {
             id: 't5',
             name: 'Palmeiras',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1963/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/7spurne-xDt2p6C0imYYNA_96x96.png',
             primaryColor: '#006437',
             secondaryColor: '#FFFFFF',
             players: [
@@ -127,7 +127,7 @@ const SEED_DATA = {
         {
             id: 't6',
             name: 'Santos',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1968/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/VHdNOT6wWOw_vJ38GMjMzg_96x96.png',
             primaryColor: '#FFFFFF',
             secondaryColor: '#000000',
             players: [
@@ -138,7 +138,7 @@ const SEED_DATA = {
         {
             id: 't7',
             name: 'Corinthians',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1957/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/tCMSqgXVHROpdCpQhzTo1g_96x96.png',
             primaryColor: '#000000',
             secondaryColor: '#FFFFFF',
             players: [
@@ -149,7 +149,7 @@ const SEED_DATA = {
         {
             id: 't8',
             name: 'São Paulo',
-            logoUrl: 'https://api.sofascore.app/api/v1/team/1981/image/small',
+            logoUrl: 'https://ssl.gstatic.com/onebox/media/sports/logos/optimized/4w2Z97Hf9CSOqICK3a8AxQ_96x96.png',
             primaryColor: '#E60026',
             secondaryColor: '#000000',
             players: [
@@ -823,14 +823,14 @@ class MockApiService {
                 if (!scores[key]) {
                     const team = teams.find(t => t.id === g.teamId);
                     const player = team?.players?.find(p => p.id === g.playerId);
-                    scores[key] = { 
+                    scores[key] = {
                         playerId: g.playerId,
-                        player: g.playerName, 
+                        player: g.playerName,
                         photoUrl: player?.photoUrl,
                         teamId: g.teamId,
-                        team: g.teamName, 
+                        team: g.teamName,
                         teamLogoUrl: team?.logoUrl,
-                        goals: 0 
+                        goals: 0
                     };
                 }
                 scores[key].goals++;
