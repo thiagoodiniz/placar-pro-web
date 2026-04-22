@@ -68,41 +68,58 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
 
     const handleApplyShortcut = () => {
         if (!preview) return;
-        if (standings.length >= 2) {
+        if (standings.length >= 1) {
             const advancingCount = championship.advancingCount || 2;
             const newMatchups: { homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER' }[] = [];
 
-            // Ouro
-            for (let g = 0; g < standings.length; g += 2) {
-                const groupA = standings[g]?.standings || [];
-                const groupB = standings[g + 1]?.standings || [];
-                for (let i = 0; i < advancingCount; i++) {
-                    const homeTeam = groupA[i];
-                    const awayTeam = groupB[advancingCount - 1 - i];
-                    if (homeTeam && awayTeam) {
-                        newMatchups.push({
-                            homeTeamId: homeTeam.teamId,
-                            awayTeamId: awayTeam.teamId,
-                            bracket: 'GOLD'
-                        });
+            if (standings.length === 1) {
+                // Caso: Apenas 1 grupo
+                const group = standings[0].standings || [];
+                const numMatches = Math.max(1, Math.floor(advancingCount / 2));
+                
+                // Ouro
+                for (let i = 0; i < numMatches; i++) {
+                    const homeTeam = group[i];
+                    const awayTeam = group[advancingCount - 1 - i];
+                    if (homeTeam || awayTeam) {
+                        newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'GOLD' });
                     }
                 }
-            }
-
-            // Prata
-            if (enableSilverBracket) {
+                
+                // Prata
+                if (enableSilverBracket) {
+                    for (let i = 0; i < numMatches; i++) {
+                        const homeTeam = group[i + advancingCount];
+                        const awayTeam = group[advancingCount - 1 - i + advancingCount];
+                        if (homeTeam || awayTeam) {
+                            newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'SILVER' });
+                        }
+                    }
+                }
+            } else {
+                // Caso: 2 ou mais grupos (Cruzamento entre pares de grupos)
                 for (let g = 0; g < standings.length; g += 2) {
                     const groupA = standings[g]?.standings || [];
                     const groupB = standings[g + 1]?.standings || [];
                     for (let i = 0; i < advancingCount; i++) {
-                        const homeTeam = groupA[i + advancingCount];
-                        const awayTeam = groupB[advancingCount - 1 - i + advancingCount];
-                        if (homeTeam && awayTeam) {
-                            newMatchups.push({
-                                homeTeamId: homeTeam.teamId,
-                                awayTeamId: awayTeam.teamId,
-                                bracket: 'SILVER'
-                            });
+                        const homeTeam = groupA[i];
+                        const awayTeam = groupB[advancingCount - 1 - i];
+                        if (homeTeam || awayTeam) {
+                            newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'GOLD' });
+                        }
+                    }
+                }
+
+                if (enableSilverBracket) {
+                    for (let g = 0; g < standings.length; g += 2) {
+                        const groupA = standings[g]?.standings || [];
+                        const groupB = standings[g + 1]?.standings || [];
+                        for (let i = 0; i < advancingCount; i++) {
+                            const homeTeam = groupA[i + advancingCount];
+                            const awayTeam = groupB[advancingCount - 1 - i + advancingCount];
+                            if (homeTeam || awayTeam) {
+                                newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'SILVER' });
+                            }
                         }
                     }
                 }
@@ -111,7 +128,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
             // Pad with empty slots if needed
             const expectedLength = preview.previewMatches.length * (enableSilverBracket ? 2 : 1);
             while (newMatchups.length < expectedLength) {
-                newMatchups.push({ bracket: newMatchups.length < preview.previewMatches.length ? 'GOLD' : 'SILVER' });
+                newMatchups.push({ bracket: newMatchups.filter(m => m.bracket === 'GOLD').length < preview.previewMatches.length ? 'GOLD' : 'SILVER' });
             }
 
             setMatchups(newMatchups.slice(0, expectedLength));
