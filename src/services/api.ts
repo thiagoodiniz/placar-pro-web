@@ -74,9 +74,13 @@ const api: any = {
             const id = url.split('/')[2];
             return { data: await mockApi.fillRandomResults(id) };
         }
+        if (url.includes('/next-phase-preview')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.generateNextPhasePreview(id) };
+        }
         if (url.includes('/next-phase')) {
             const id = url.split('/')[2];
-            return { data: await mockApi.generateNextPhaseMatches(id) };
+            return { data: await mockApi.generateNextPhaseMatches(id, body?.matches) };
         }
         if (url.includes('/groups') && url.includes('/generate-matches')) {
             const groupId = url.split('/')[3];

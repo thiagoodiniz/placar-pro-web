@@ -36,6 +36,7 @@ import MatchesTab from './components/MatchesTab';
 import ScorersTab from './components/ScorersTab';
 import MatchResultModal from './components/MatchResultModal';
 import TeamPicker from './components/TeamPicker';
+import NextPhaseModal from './components/NextPhaseModal';
 
 const { Title, Text } = Typography;
 
@@ -63,6 +64,8 @@ const ChampionshipDetailPage: React.FC = () => {
     const [isResultModalOpen, setIsResultModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isManualMatchModalOpen, setIsManualMatchModalOpen] = useState(false);
+    const [isNextPhaseModalOpen, setIsNextPhaseModalOpen] = useState(false);
+    const [nextPhasePreview, setNextPhasePreview] = useState<any>(null);
     const [selectedMatch, setSelectedMatch] = useState<any>(null);
     const [selectedGroup, setSelectedGroup] = useState<any>(null);
     const [matchGoals, setMatchGoals] = useState<any[]>([]);
@@ -506,13 +509,9 @@ const ChampionshipDetailPage: React.FC = () => {
                         canFinishChampionship={canFinishChampionship}
                         onStartNextPhase={async () => {
                             try {
-                                await api.post(`/championships/${id}/next-phase`);
-                                message.success(`${nextPhaseName} iniciada!`);
-                                await fetchMatches(id!);
-                                await fetchStandings(id!);
-                                setActiveTab('matches');
-                                setActivePhase(nextPhaseId);
-                                setCurrentRound(1);
+                                const res = await api.post(`/championships/${id}/next-phase-preview`);
+                                setNextPhasePreview(res.data);
+                                setIsNextPhaseModalOpen(true);
                             } catch (err) { console.error(err); }
                         }}
                         onAutoResults={async () => {
@@ -729,6 +728,30 @@ const ChampionshipDetailPage: React.FC = () => {
                     </Form.Item>
                 </Form>
             </Modal>
+            {nextPhasePreview && (
+                <NextPhaseModal
+                    isOpen={isNextPhaseModalOpen}
+                    onClose={() => setIsNextPhaseModalOpen(false)}
+                    championship={championship}
+                    standings={standings}
+                    preview={nextPhasePreview}
+                    onSave={async (matchesToSave) => {
+                        try {
+                            await api.post(`/championships/${id}/next-phase`, { matches: matchesToSave });
+                            message.success(`${nextPhaseName} iniciada!`);
+                            setIsNextPhaseModalOpen(false);
+                            await fetchMatches(id!);
+                            await fetchStandings(id!);
+                            setActiveTab('matches');
+                            setActivePhase(nextPhaseId);
+                            setCurrentRound(1);
+                        } catch (err) {
+                            console.error(err);
+                            message.error('Erro ao iniciar próxima fase');
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

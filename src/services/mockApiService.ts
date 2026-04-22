@@ -559,15 +559,24 @@ class MockApiService {
             if (matches.length > 0) {
                 const finalMatch = matches[0];
                 const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
-                let winnerId: string | undefined;
-                if ((finalMatch.homeScore ?? 0) > (finalMatch.awayScore ?? 0)) {
+                const hScore = finalMatch.homeScore ?? 0;
+                const aScore = finalMatch.awayScore ?? 0;
+                let winnerId: string;
+
+                if (hScore > aScore) {
                     winnerId = finalMatch.homeTeamId;
-                } else if ((finalMatch.awayScore ?? 0) > (finalMatch.homeScore ?? 0)) {
+                } else if (aScore > hScore) {
                     winnerId = finalMatch.awayTeamId;
-                } else if (finalMatch.homePenalties !== undefined && finalMatch.awayPenalties !== undefined) {
-                    winnerId = finalMatch.homePenalties > finalMatch.awayPenalties ? finalMatch.homeTeamId : finalMatch.awayTeamId;
                 } else {
-                    winnerId = finalMatch.homeTeamId; // fallback
+                    const hPen = finalMatch.homePenalties ?? 0;
+                    const aPen = finalMatch.awayPenalties ?? 0;
+                    if (hPen > aPen) {
+                        winnerId = finalMatch.homeTeamId;
+                    } else if (aPen > hPen) {
+                        winnerId = finalMatch.awayTeamId;
+                    } else {
+                        winnerId = finalMatch.homeTeamId; // final fallback
+                    }
                 }
                 const winnerTeam = teams.find(t => t.id === winnerId);
                 if (winnerTeam) champion = winnerTeam.name;
@@ -1207,7 +1216,7 @@ class MockApiService {
         return { message: 'Random results generated' };
     }
 
-    async generateNextPhaseMatches(championshipId: string) {
+    async _calculateNextPhaseMatches(championshipId: string) {
         const champ = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS).find(c => c.id === championshipId);
         if (!champ) throw new Error('Championship not found');
 
@@ -1239,13 +1248,22 @@ class MockApiService {
         } else {
             const phaseMatches = matches.filter(m => m.phase === currentPhase);
             phaseMatches.forEach(m => {
-                if (m.homeScore !== undefined && m.awayScore !== undefined) {
-                    if (m.homeScore > m.awayScore) advancingTeams.push({ teamId: m.homeTeamId });
-                    else if (m.awayScore > m.homeScore) advancingTeams.push({ teamId: m.awayTeamId });
-                    else {
-                        if (Math.random() > 0.5) advancingTeams.push({ teamId: m.homeTeamId });
-                        else advancingTeams.push({ teamId: m.awayTeamId });
+                if (m.homeScore !== null && m.awayScore !== null && m.status === MatchStatus.FINISHED) {
+                    let winnerId: string;
+                    if (m.homeScore > m.awayScore) {
+                        winnerId = m.homeTeamId;
+                    } else if (m.awayScore > m.homeScore) {
+                        winnerId = m.awayTeamId;
+                    } else if (m.homePenalties !== null && m.homePenalties !== undefined && 
+                               m.awayPenalties !== null && m.awayPenalties !== undefined) {
+                        winnerId = m.homePenalties > m.awayPenalties ? m.homeTeamId : m.awayTeamId;
+                    } else {
+                        winnerId = Math.random() > 0.5 ? m.homeTeamId : m.awayTeamId; // extreme fallback
                     }
+                    advancingTeams.push({ 
+                        teamId: winnerId, 
+                        teamName: m.homeTeamId === winnerId ? m.homeTeam?.name : m.awayTeam?.name 
+                    });
                 }
             });
 
@@ -1268,7 +1286,7 @@ class MockApiService {
                 const numMatches = groupAdvancing.length / 2;
                 for (let i = 0; i < numMatches; i++) {
                     newMatches.push({
-                        id: Math.random().toString(36).substr(2, 9),
+                        id: uuidv4(),
                         championshipId,
                         homeTeamId: groupAdvancing[i].teamId,
                         awayTeamId: groupAdvancing[groupAdvancing.length - 1 - i].teamId,
@@ -1290,7 +1308,7 @@ class MockApiService {
                         const awayTeam = groupB[advancingCount - 1 - i];
                         if (homeTeam && awayTeam) {
                             newMatches.push({
-                                id: Math.random().toString(36).substr(2, 9),
+                                id: uuidv4(),
                                 championshipId,
                                 homeTeamId: homeTeam.teamId,
                                 awayTeamId: awayTeam.teamId,
@@ -1313,7 +1331,7 @@ class MockApiService {
 
                 if (homeTeam && awayTeam) {
                     newMatches.push({
-                        id: Math.random().toString(36).substr(2, 9),
+                        id: uuidv4(),
                         championshipId,
                         homeTeamId: homeTeam.teamId,
                         awayTeamId: awayTeam.teamId,
@@ -1328,9 +1346,35 @@ class MockApiService {
             }
         }
 
-        const allMatches = this.getData<Match>(STORAGE_KEYS.MATCHES);
+        return { nextPhase, advancingTeams, previewMatches: newMatches };
+    }
 
-        this.setData(STORAGE_KEYS.MATCHES, [...allMatches, ...newMatches]);
+    async generateNextPhasePreview(championshipId: string) {
+        return await this._calculateNextPhaseMatches(championshipId);
+    }
+
+    async generateNextPhaseMatches(championshipId: string, manualMatches?: { homeTeamId: string; awayTeamId: string }[]) {
+        const { nextPhase, previewMatches } = await this._calculateNextPhaseMatches(championshipId);
+
+        let finalMatches = previewMatches;
+
+        if (manualMatches && manualMatches.length > 0) {
+            finalMatches = manualMatches.map(m => ({
+                id: uuidv4(),
+                championshipId,
+                homeTeamId: m.homeTeamId,
+                awayTeamId: m.awayTeamId,
+                phase: nextPhase,
+                round: 1,
+                status: MatchStatus.SCHEDULED,
+                goals: [],
+                homeScore: null,
+                awayScore: null
+            }));
+        }
+
+        const allMatches = this.getData<Match>(STORAGE_KEYS.MATCHES);
+        this.setData(STORAGE_KEYS.MATCHES, [...allMatches, ...finalMatches]);
         return { message: 'Próxima fase gerada com sucesso' };
     }
 }

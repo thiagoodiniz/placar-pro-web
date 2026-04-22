@@ -25,7 +25,6 @@ interface ManagementCardProps {
 const ManagementCard: React.FC<ManagementCardProps> = ({
     championship,
     matches,
-    id,
     onEditTeams,
     onFinalize,
     onResetGroups,
@@ -109,7 +108,6 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                 {canFinishChampionship && championship.status !== 'FINISHED' && (
                     <Button
                         type="primary"
-                        style={{ backgroundColor: '#52c41a' }}
                         icon={<TrophyOutlined />}
                         onClick={onFinishChampionship}
                     >

@@ -110,12 +110,42 @@ const MatchResultModal: React.FC<MatchResultModalProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12 }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.homeTeam?.name}</div>
-                                <Form.Item name="homePenalties" noStyle><InputNumber min={0} size="large" style={{ width: 80 }} /></Form.Item>
+                                <Form.Item 
+                                    name="homePenalties" 
+                                    rules={[
+                                        { required: true, message: '' },
+                                        ({ getFieldValue }) => ({
+                                            validator(_, value) {
+                                                if (value !== undefined && value !== null && value === getFieldValue('awayPenalties')) {
+                                                    return Promise.reject(new Error('Empate não permitido'));
+                                                }
+                                                return Promise.resolve();
+                                            },
+                                        }),
+                                    ]}
+                                >
+                                    <InputNumber min={0} size="large" style={{ width: 80 }} />
+                                </Form.Item>
                             </div>
-                            <div style={{ fontSize: '20px', fontWeight: 'bold' }}>x</div>
+                            <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: -24 }}>x</div>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.awayTeam?.name}</div>
-                                <Form.Item name="awayPenalties" noStyle><InputNumber min={0} size="large" style={{ width: 80 }} /></Form.Item>
+                                <Form.Item 
+                                    name="awayPenalties"
+                                    rules={[
+                                        { required: true, message: '' },
+                                        ({ getFieldValue }) => ({
+                                            validator(_, value) {
+                                                if (value !== undefined && value !== null && value === getFieldValue('homePenalties')) {
+                                                    return Promise.reject(new Error('Empate não permitido'));
+                                                }
+                                                return Promise.resolve();
+                                            },
+                                        }),
+                                    ]}
+                                >
+                                    <InputNumber min={0} size="large" style={{ width: 80 }} />
+                                </Form.Item>
                             </div>
                         </div>
                     </div>
