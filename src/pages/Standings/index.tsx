@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tabs, Table, Card, Typography, Space, Avatar } from 'antd';
 import { TrophyOutlined } from '@ant-design/icons';
-import api from '../services/api';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -51,14 +51,14 @@ const StandingsPage: React.FC = () => {
                 }}>{index + 1}</div>;
             }
         },
-        { 
-            title: 'Time', 
-            key: 'teamName', 
+        {
+            title: 'Time',
+            key: 'teamName',
             fixed: 'left' as const,
             render: (record: any) => (
                 <Space size={8}>
-                    <Avatar 
-                        size="small" 
+                    <Avatar
+                        size="small"
                         src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />}
                         style={{ backgroundColor: '#f0f0f0' }}
                     >

@@ -3,18 +3,34 @@ import { mockApi } from './mockApiService';
 const api: any = {
     get: async (url: string) => {
         if (url === '/championships') return { data: await mockApi.getChampionships() };
+        if (url.match(/^\/championships\/[^\/]+$/) && !url.includes('/standings') && !url.includes('/scorers') && !url.includes('/top-scorers')) {
+            const id = url.split('/')[2];
+            const all = await mockApi.getChampionships();
+            return { data: all.find((c: any) => c.id === id) || null };
+        }
         if (url === '/teams') return { data: await mockApi.getTeams() };
         if (url.includes('/standings')) {
             const id = url.split('/')[2];
             return { data: await mockApi.getStandings(id) };
         }
-        if (url.includes('/top-scorers')) {
-            const id = url.split('/')[3];
+        if (url.includes('/scorers') || url.includes('/top-scorers')) {
+            const id = url.split('/')[2];
             return { data: await mockApi.getTopScorers(id) };
         }
         if (url.includes('/matches')) {
-            const id = url.split('/')[2];
+            // Handle both /matches?championshipId=xxx and /championships/:id/matches
+            let id: string | undefined;
+            if (url.includes('championshipId=')) {
+                id = new URLSearchParams(url.split('?')[1]).get('championshipId') ?? undefined;
+            } else {
+                id = url.split('/')[2];
+            }
             return { data: await mockApi.getMatches(id) };
+        }
+        if (url.includes('/teams/')) {
+            const id = url.split('/')[2];
+            const all = await mockApi.getTeams();
+            return { data: all.find((t: any) => t.id === id) || null };
         }
         return { data: [] };
     },
@@ -99,6 +115,10 @@ const api: any = {
         if (url.includes('/teams/') && url.includes('/players/')) {
             const [,, teamId,, playerId] = url.split('/');
             return { data: await mockApi.removePlayerFromTeam(teamId, playerId) };
+        }
+        if (url.includes('/championships/')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.deleteChampionship(id) };
         }
         if (url.includes('/teams/')) {
             const id = url.split('/')[2];

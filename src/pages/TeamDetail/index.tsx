@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Button, Form, Input, Typography, Card, List, Row, Col,
-    Spin, theme, Empty, Popconfirm, Avatar,
-    ColorPicker, message, Modal
+    Button, Form, Input, Typography, Card, Row, Col,
+    Spin, theme, Popconfirm, Avatar,
+    ColorPicker, message
 } from 'antd';
 import {
-    PlusOutlined, EditOutlined, DeleteOutlined,
-    TeamOutlined, SaveOutlined
+    TeamOutlined, SaveOutlined, DeleteOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api';
-import { usePageTitle } from '../components/Layout/AppLayout';
+import api from '../../services/api';
+import { usePageTitle } from '../../components/Layout/AppLayout';
+
+// Sub-components
+import PlayerModal from './components/PlayerModal';
+import PlayerList from './components/PlayerList';
 
 const { Title } = Typography;
 
@@ -26,7 +29,7 @@ const TeamDetailPage: React.FC = () => {
     const [teamForm] = Form.useForm();
     const logoUrl = Form.useWatch('logoUrl', teamForm);
 
-    // Player management
+    // Player management state
     const [players, setPlayers] = useState<any[]>([]);
     const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false);
     const [isPlayerEdit, setIsPlayerEdit] = useState(false);
@@ -121,7 +124,6 @@ const TeamDetailPage: React.FC = () => {
             setIsPlayerModalOpen(false);
             playerForm.resetFields();
 
-            // Refresh team and players
             const res = await api.get('/teams');
             const updatedTeam = res.data.find((t: any) => t.id === id);
             setPlayers(updatedTeam?.players || []);
@@ -168,9 +170,6 @@ const TeamDetailPage: React.FC = () => {
 
     return (
         <div style={{ maxWidth: 800, margin: '0 auto', paddingBottom: 40 }}>
-            {/* Header Actions */}
-            {/* Team Edit Content */}
-
             <Card style={{ borderRadius: 16, marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Form form={teamForm} layout="vertical" onFinish={handleSaveTeam}>
                     <Row gutter={[24, 0]}>
@@ -244,90 +243,28 @@ const TeamDetailPage: React.FC = () => {
                             size="large"
                             style={{ borderRadius: 10, paddingLeft: 30, paddingRight: 30 }}
                         >
-                            Salvar Dados do Clube
+                            Salvar
                         </Button>
                     </div>
                 </Form>
             </Card>
 
             {isEditing && (
-                <div style={{ marginTop: 32 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <Title level={4} style={{ margin: 0 }}>
-                            <TeamOutlined /> Jogadores ({players.length})
-                        </Title>
-                        <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={() => openPlayerModal()}
-                            style={{ borderRadius: 8 }}
-                        >
-                            Adicionar
-                        </Button>
-                    </div>
-
-                    {players.length === 0 ? (
-                        <Card style={{ borderRadius: 16, textAlign: 'center', padding: '40px 0', border: '1px dashed #d9d9d9' }}>
-                            <Empty description="Nenhum jogador cadastrado" />
-                            <Button type="dashed" icon={<PlusOutlined />} onClick={() => openPlayerModal()} style={{ marginTop: 16 }}>
-                                Adicionar Primeiro Jogador
-                            </Button>
-                        </Card>
-                    ) : (
-                        <List
-                            grid={{ gutter: 16, xs: 1, sm: 2 }}
-                            dataSource={players}
-                            renderItem={(player: any) => (
-                                <List.Item>
-                                    <Card
-                                        size="small"
-                                        style={{ borderRadius: 12 }}
-                                        actions={[
-                                            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openPlayerModal(player)}>Editar</Button>,
-                                            <Popconfirm title="Remover jogador?" onConfirm={() => handleDeletePlayer(player.id)}>
-                                                <Button type="text" size="small" danger icon={<DeleteOutlined />}>Remover</Button>
-                                            </Popconfirm>
-                                        ]}
-                                    >
-                                        <Card.Meta
-                                            avatar={
-                                                <Avatar
-                                                    size={48}
-                                                    src={player.photoUrl}
-                                                    style={{ backgroundColor: token.colorFillSecondary }}
-                                                >
-                                                    {!player.photoUrl && (player.name?.[0]?.toUpperCase() || '?')}
-                                                </Avatar>
-                                            }
-                                            title={player.name}
-                                        />
-                                    </Card>
-                                </List.Item>
-                            )}
-                        />
-                    )}
-                </div>
+                <PlayerList
+                    players={players}
+                    onAdd={() => openPlayerModal()}
+                    onEdit={openPlayerModal}
+                    onDelete={handleDeletePlayer}
+                />
             )}
 
-            {/* Player Modal */}
-            <Modal
-                title={isPlayerEdit ? "Editar Jogador" : "Novo Jogador"}
+            <PlayerModal
                 open={isPlayerModalOpen}
                 onCancel={() => setIsPlayerModalOpen(false)}
-                onOk={() => playerForm.submit()}
-                okText="Salvar"
-                cancelText="Cancelar"
-                centered
-            >
-                <Form form={playerForm} layout="vertical" onFinish={handleSavePlayer} style={{ marginTop: 16 }}>
-                    <Form.Item name="name" label="Nome Completo" rules={[{ required: true, message: 'Digite o nome' }]}>
-                        <Input placeholder="Ex: Cristiano Ronaldo" style={{ borderRadius: 8 }} />
-                    </Form.Item>
-                    <Form.Item name="photoUrl" label="URL da Foto">
-                        <Input placeholder="https://exemplo.com/foto.jpg" style={{ borderRadius: 8 }} />
-                    </Form.Item>
-                </Form>
-            </Modal>
+                onFinish={handleSavePlayer}
+                form={playerForm}
+                isEdit={isPlayerEdit}
+            />
         </div>
     );
 };

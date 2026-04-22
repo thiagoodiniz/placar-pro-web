@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/Layout/AppLayout';
-import ChampionshipsPage from './pages/ChampionshipsPage';
-import ChampionshipDetailPage from './pages/ChampionshipDetailPage';
-import TeamsPage from './pages/TeamsPage';
-import TeamDetailPage from './pages/TeamDetailPage';
+import ChampionshipsPage from './pages/Championships';
+import ChampionshipDetailPage from './pages/ChampionshipDetail';
+import TeamsPage from './pages/Teams';
+import TeamDetailPage from './pages/TeamDetail';
 
 function App() {
     return (

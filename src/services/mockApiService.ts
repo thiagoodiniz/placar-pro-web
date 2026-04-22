@@ -416,6 +416,22 @@ class MockApiService {
         this.setData(STORAGE_KEYS.MATCHES, SEED_DATA.matches);
     }
 
+    async deleteChampionship(id: string) {
+        let championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
+        championships = championships.filter(c => c.id !== id);
+        this.setData(STORAGE_KEYS.CHAMPIONSHIPS, championships);
+
+        let matches = this.getData<Match>(STORAGE_KEYS.MATCHES);
+        matches = matches.filter(m => m.championshipId !== id);
+        this.setData(STORAGE_KEYS.MATCHES, matches);
+
+        let groups = this.getData<Group>(STORAGE_KEYS.GROUPS);
+        groups = groups.filter(g => g.championshipId !== id);
+        this.setData(STORAGE_KEYS.GROUPS, groups);
+
+        return { message: 'Championship deleted' };
+    }
+
     init() {
         if (!localStorage.getItem(STORAGE_KEYS.CHAMPIONSHIPS)) {
             this.resetToSeed();
@@ -985,28 +1001,50 @@ class MockApiService {
     // Standings
     async getStandings(championshipId: string) {
         const groups = this.getData<Group>(STORAGE_KEYS.GROUPS).filter(g => g.championshipId === championshipId);
-        const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => m.championshipId === championshipId && m.status === MatchStatus.FINISHED);
+        const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => 
+            m.championshipId === championshipId && 
+            m.status === MatchStatus.FINISHED && 
+            (m.phase === 'GROUP' || m.phase === 'LEAGUE')
+        );
         const allTeams = this.getData<Team>(STORAGE_KEYS.TEAMS);
 
         const championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
         const champ = championships.find(c => c.id === championshipId);
 
         if (groups.length === 0) {
-            // If No Groups, return based on championship teams if they exist
+            // If No Groups (like LEAGUE), return based on championship teams and 'geral' group matches
             if (champ && champ.teams.length > 0) {
+                const standings = champ.teams.map(ct => {
+                    const team = allTeams.find(t => t.id === ct.teamId)!;
+                    const tMatches = matches.filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id);
+
+                    let stats = {
+                        teamId: team.id,
+                        teamName: team.name,
+                        teamLogoUrl: team.logoUrl,
+                        played: tMatches.length,
+                        wins: 0, draws: 0, losses: 0,
+                        goalsFor: 0, goalsAgainst: 0, gd: 0, points: 0
+                    };
+
+                    tMatches.forEach(m => {
+                        const isHome = m.homeTeamId === team.id;
+                        const ownScore = (isHome ? m.homeScore : m.awayScore) ?? 0;
+                        const opponentScore = (isHome ? m.awayScore : m.homeScore) ?? 0;
+                        stats.goalsFor += ownScore;
+                        stats.goalsAgainst += opponentScore;
+                        if (ownScore > opponentScore) { stats.wins++; stats.points += 3; }
+                        else if (ownScore === opponentScore) { stats.draws++; stats.points += 1; }
+                        else stats.losses++;
+                    });
+                    stats.gd = stats.goalsFor - stats.goalsAgainst;
+                    return stats;
+                });
+
                 return [{
                     groupId: 'geral',
                     groupName: 'Geral',
-                    standings: champ.teams.map(ct => {
-                        const team = allTeams.find(t => t.id === ct.teamId)!;
-                        return {
-                            teamId: team.id,
-                            teamName: team.name,
-                            teamLogoUrl: team.logoUrl,
-                            played: 0, wins: 0, draws: 0, losses: 0,
-                            goalsFor: 0, goalsAgainst: 0, gd: 0, points: 0
-                        };
-                    })
+                    standings: standings.sort((a, b) => b.points - a.points || b.gd - a.gd || b.goalsFor - a.goalsFor)
                 }];
             }
             return [];
