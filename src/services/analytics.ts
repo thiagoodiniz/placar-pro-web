@@ -13,7 +13,7 @@ export const initAnalytics = () => {
             autocapture: true,
             // Opt out of capturing if in localhost
             opt_out_capturing_by_default: isLocalhost,
-            loaded: (posthog) => {
+            loaded: () => {
                 if (isLocalhost) {
                     console.log('PostHog initialized but capturing is DISABLED on localhost.');
                 }
