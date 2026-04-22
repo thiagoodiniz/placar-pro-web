@@ -413,7 +413,11 @@ class MockApiService {
     }
 
     resetToSeed() {
+        const appVersion = localStorage.getItem('APP_VERSION');
         localStorage.clear();
+        if (appVersion) {
+            localStorage.setItem('APP_VERSION', appVersion);
+        }
         this.setData(STORAGE_KEYS.TEAMS, SEED_DATA.teams);
         this.setData(STORAGE_KEYS.CHAMPIONSHIPS, SEED_DATA.championships);
         this.setData(STORAGE_KEYS.GROUPS, SEED_DATA.groups);
