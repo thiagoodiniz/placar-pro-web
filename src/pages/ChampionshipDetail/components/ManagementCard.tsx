@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
 import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import api from '../../../services/api';
 
 interface ManagementCardProps {
     championship: any;

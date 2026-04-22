@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Card, Typography, Space, Tag, Avatar } from 'antd';
 import { FireOutlined, TrophyOutlined } from '@ant-design/icons';
-import api from '../services/api';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 

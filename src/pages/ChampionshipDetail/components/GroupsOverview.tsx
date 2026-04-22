@@ -1,6 +1,6 @@
 import React from 'react';
 import { Typography, Row, Col, Card, Space, Button, Avatar, Tag, Empty, theme } from 'antd';
-import { EditOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { EditOutlined } from '@ant-design/icons';
 
 const { Text, Title } = Typography;
 
@@ -8,15 +8,14 @@ interface GroupsOverviewProps {
     championship: any;
     standings: any[];
     onEditGroup: (group: any) => void;
-    onGenerateMatches: (groupId: string) => void;
-    onRemoveTeam: (teamName: string) => void;
+    onGenerateMatches?: (groupId: string) => void;
+    onRemoveTeam?: (teamName: string) => void;
 }
 
 const GroupsOverview: React.FC<GroupsOverviewProps> = ({
     championship,
     standings,
     onEditGroup,
-    onGenerateMatches,
 }) => {
     const { token } = theme.useToken();
     const teamsPerGroup = Math.ceil((championship.teamCount || 0) / (championship.groupCount || 1));

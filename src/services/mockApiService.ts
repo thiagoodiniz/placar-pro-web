@@ -215,13 +215,15 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
         SEEDED_MATCHES
             .filter(m => m.championshipId === championshipId && m.groupId === groupId && m.status === MatchStatus.FINISHED)
             .forEach(m => {
-                stats[m.homeTeamId].gp += m.homeScore;
-                stats[m.awayTeamId].gp += m.awayScore;
-                stats[m.homeTeamId].gd += (m.homeScore - m.awayScore);
-                stats[m.awayTeamId].gd += (m.awayScore - m.homeScore);
+                const hScore = m.homeScore ?? 0;
+                const aScore = m.awayScore ?? 0;
+                stats[m.homeTeamId].gp += hScore;
+                stats[m.awayTeamId].gp += aScore;
+                stats[m.homeTeamId].gd += (hScore - aScore);
+                stats[m.awayTeamId].gd += (aScore - hScore);
 
-                if (m.homeScore > m.awayScore) stats[m.homeTeamId].points += 3;
-                else if (m.awayScore > m.homeScore) stats[m.awayTeamId].points += 3;
+                if (hScore > aScore) stats[m.homeTeamId].points += 3;
+                else if (aScore > hScore) stats[m.awayTeamId].points += 3;
                 else {
                     stats[m.homeTeamId].points += 1;
                     stats[m.awayTeamId].points += 1;
@@ -838,7 +840,7 @@ class MockApiService {
         if (index === -1) throw new Error('Match not found');
 
         const updated = { ...matches[index], ...data };
-        
+
         // Update status based on score presence
         if (updated.homeScore !== null && updated.awayScore !== null) {
             updated.status = MatchStatus.FINISHED;
@@ -1018,7 +1020,7 @@ class MockApiService {
 
         const teamIds = [...champ.teams.map(t => t.teamId)].sort(() => Math.random() - 0.5);
         const groups = this.getData<Group>(STORAGE_KEYS.GROUPS).filter(g => g.championshipId === championshipId);
-        
+
         if (groups.length === 0) return { message: 'No groups defined' };
 
         groups.forEach(g => g.teams = []);
@@ -1027,9 +1029,9 @@ class MockApiService {
         for (let i = 0; i < teamIds.length; i++) {
             const groupIdx = i % groups.length;
             const tid = teamIds[i];
-            groups[groupIdx].teams.push({ 
-                teamId: tid, 
-                team: allTeams.find(t => t.id === tid) || { id: tid, name: 'Unknown' } as any 
+            groups[groupIdx].teams.push({
+                teamId: tid,
+                team: allTeams.find(t => t.id === tid) || { id: tid, name: 'Unknown' } as any
             });
         }
 
@@ -1053,9 +1055,9 @@ class MockApiService {
     // Standings
     async getStandings(championshipId: string) {
         const groups = this.getData<Group>(STORAGE_KEYS.GROUPS).filter(g => g.championshipId === championshipId);
-        const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => 
-            m.championshipId === championshipId && 
-            m.status === MatchStatus.FINISHED && 
+        const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m =>
+            m.championshipId === championshipId &&
+            m.status === MatchStatus.FINISHED &&
             (m.phase === 'GROUP' || m.phase === 'LEAGUE')
         );
         const allTeams = this.getData<Team>(STORAGE_KEYS.TEAMS);
@@ -1133,8 +1135,8 @@ class MockApiService {
 
                 tMatches.forEach(m => {
                     const isHome = m.homeTeamId === team.id;
-                    const ownScore = isHome ? m.homeScore : m.awayScore;
-                    const opponentScore = isHome ? m.awayScore : m.homeScore;
+                    const ownScore = (isHome ? m.homeScore : m.awayScore) ?? 0;
+                    const opponentScore = (isHome ? m.awayScore : m.homeScore) ?? 0;
                     stats.goalsFor += ownScore;
                     stats.goalsAgainst += opponentScore;
                     if (ownScore > opponentScore) { stats.wins++; stats.points += 3; }
@@ -1220,6 +1222,7 @@ class MockApiService {
         const champ = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS).find(c => c.id === championshipId);
         if (!champ) throw new Error('Championship not found');
 
+        const allTeams = this.getData<Team>(STORAGE_KEYS.TEAMS);
         const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => m.championshipId === championshipId);
         const currentPhase = matches.length > 0 ? (matches[matches.length - 1].phase || 'GROUP') : 'GROUP';
 
@@ -1254,15 +1257,17 @@ class MockApiService {
                         winnerId = m.homeTeamId;
                     } else if (m.awayScore > m.homeScore) {
                         winnerId = m.awayTeamId;
-                    } else if (m.homePenalties !== null && m.homePenalties !== undefined && 
-                               m.awayPenalties !== null && m.awayPenalties !== undefined) {
+                    } else if (m.homePenalties !== null && m.homePenalties !== undefined &&
+                        m.awayPenalties !== null && m.awayPenalties !== undefined) {
                         winnerId = m.homePenalties > m.awayPenalties ? m.homeTeamId : m.awayTeamId;
                     } else {
                         winnerId = Math.random() > 0.5 ? m.homeTeamId : m.awayTeamId; // extreme fallback
                     }
+                    const winnerTeam = allTeams.find((t: any) => t.id === winnerId);
                     advancingTeams.push({ 
                         teamId: winnerId, 
-                        teamName: m.homeTeamId === winnerId ? m.homeTeam?.name : m.awayTeam?.name 
+                        teamName: winnerTeam?.name || 'Desconhecido',
+                        teamLogoUrl: winnerTeam?.logoUrl
                     });
                 }
             });

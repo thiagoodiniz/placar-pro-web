@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, InputNumber, Card, Typography, Space, DatePicker, Input, Select, Divider } from 'antd';
 import { EditOutlined, TrophyOutlined, EnvironmentOutlined, ClockCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import api from '../services/api';
+import api from '../../services/api';
 import dayjs from 'dayjs';
 import { MinusCircleOutlined, PlusCircleOutlined } from '@ant-design/icons';
 
@@ -117,7 +117,7 @@ const MatchManagementPage: React.FC = () => {
                     teamGoals.forEach((g: any) => {
                         counts[g.playerName] = (counts[g.playerName] || 0) + 1;
                     });
-                    return Object.entries(counts).map(([name, count]) => 
+                    return Object.entries(counts).map(([name, count]) =>
                         count > 1 ? `${name} (${count})` : name
                     ).join(', ');
                 };
@@ -126,38 +126,38 @@ const MatchManagementPage: React.FC = () => {
                 const aScorers = getScorerSummary(record.awayTeamId);
 
                 return (
-                <div style={{ padding: '8px 0', minWidth: 280 }}>
-                    <div style={{ fontSize: '11px', color: '#1890ff', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                        {record.groupName ? `${record.groupName} • ` : ''}Rodada {record.round || 1}
+                    <div style={{ padding: '8px 0', minWidth: 280 }}>
+                        <div style={{ fontSize: '11px', color: '#1890ff', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                            {record.groupName ? `${record.groupName} • ` : ''}Rodada {record.round || 1}
+                        </div>
+                        <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                                <div style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 'bold' }}>
+                                    {record.homeTeam?.name || 'TBD'}
+                                </div>
+                                <div style={{
+                                    background: record.status === 'FINISHED' ? '#f0f0f0' : '#fafafa',
+                                    padding: '2px 8px', borderRadius: 4, fontWeight: 'bold', fontSize: 14, minWidth: 60, textAlign: 'center'
+                                }}>
+                                    {record.homeScore} x {record.awayScore}
+                                </div>
+                                <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 'bold' }}>
+                                    {record.awayTeam?.name || 'TBD'}
+                                </div>
+                            </div>
+                            {(hScorers || aScorers) && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8c8c8c', marginTop: 4 }}>
+                                    <div style={{ flex: 1, textAlign: 'right', paddingRight: 40 }}>{hScorers}</div>
+                                    <div style={{ flex: 1, textAlign: 'left', paddingLeft: 40 }}>{aScorers}</div>
+                                </div>
+                            )}
+                            <div style={{ fontSize: '11px', color: '#bfbfbf', marginTop: 4 }}>
+                                {record.location && <span><EnvironmentOutlined style={{ marginRight: 4 }} />{record.location}</span>}
+                                {record.location && record.dateTime && <span style={{ margin: '0 8px' }}>•</span>}
+                                {record.dateTime && <span><ClockCircleOutlined style={{ marginRight: 4 }} />{dayjs(record.dateTime).format('DD/MM HH:mm')}</span>}
+                            </div>
+                        </Space>
                     </div>
-                    <Space direction="vertical" size={0} style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                            <div style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 'bold' }}>
-                                {record.homeTeam?.name || 'TBD'}
-                            </div>
-                            <div style={{ 
-                                background: record.status === 'FINISHED' ? '#f0f0f0' : '#fafafa',
-                                padding: '2px 8px', borderRadius: 4, fontWeight: 'bold', fontSize: 14, minWidth: 60, textAlign: 'center'
-                            }}>
-                                {record.homeScore} x {record.awayScore}
-                            </div>
-                            <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 'bold' }}>
-                                {record.awayTeam?.name || 'TBD'}
-                            </div>
-                        </div>
-                        {(hScorers || aScorers) && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8c8c8c', marginTop: 4 }}>
-                                <div style={{ flex: 1, textAlign: 'right', paddingRight: 40 }}>{hScorers}</div>
-                                <div style={{ flex: 1, textAlign: 'left', paddingLeft: 40 }}>{aScorers}</div>
-                            </div>
-                        )}
-                        <div style={{ fontSize: '11px', color: '#bfbfbf', marginTop: 4 }}>
-                            {record.location && <span><EnvironmentOutlined style={{ marginRight: 4 }} />{record.location}</span>}
-                            {record.location && record.dateTime && <span style={{ margin: '0 8px' }}>•</span>}
-                            {record.dateTime && <span><ClockCircleOutlined style={{ marginRight: 4 }} />{dayjs(record.dateTime).format('DD/MM HH:mm')}</span>}
-                        </div>
-                    </Space>
-                </div>
                 );
             }
         },

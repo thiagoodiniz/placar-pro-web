@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Typography, Tag, Space, Avatar, Button, theme } from 'antd';
+import { Card, Typography, Tag, Avatar, Button, theme } from 'antd';
 import { TrophyOutlined, TeamOutlined, SettingOutlined, ArrowRightOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;

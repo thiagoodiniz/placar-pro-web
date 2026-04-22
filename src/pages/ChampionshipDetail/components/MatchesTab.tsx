@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, Button, Empty, Typography, Space, Card, List, Avatar, Divider, theme } from 'antd';
-import { PlusOutlined, EnvironmentOutlined, ClockCircleOutlined, EditOutlined, CalendarOutlined } from '@ant-design/icons';
+import { PlusOutlined, EnvironmentOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;

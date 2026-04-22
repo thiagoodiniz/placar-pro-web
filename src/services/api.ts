@@ -25,7 +25,7 @@ const api: any = {
             } else {
                 id = url.split('/')[2];
             }
-            return { data: await mockApi.getMatches(id) };
+            return { data: await mockApi.getMatches(id!) };
         }
         if (url.includes('/teams/')) {
             const id = url.split('/')[2];
@@ -114,7 +114,7 @@ const api: any = {
             return { data: await mockApi.updateMatch(id, body) };
         }
         if (url.includes('/teams/') && url.includes('/players/')) {
-            const [,, teamId,, playerId] = url.split('/');
+            const [, , teamId, , playerId] = url.split('/');
             return { data: await mockApi.updatePlayerInTeam(teamId, playerId, body) };
         }
         if (url.includes('/teams/')) {
@@ -125,7 +125,7 @@ const api: any = {
     },
     delete: async (url: string) => {
         if (url.includes('/teams/') && url.includes('/players/')) {
-            const [,, teamId,, playerId] = url.split('/');
+            const [, , teamId, , playerId] = url.split('/');
             return { data: await mockApi.removePlayerFromTeam(teamId, playerId) };
         }
         if (url.includes('/championships/')) {
