@@ -84,8 +84,11 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => {
     );
 };
 
+import { usePageTracking } from '../../hooks/usePageTracking';
+
 // ── AppLayout ───────────────────────────────────────────────────────────────
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    usePageTracking();
     const navigate = useNavigate();
     const location = useLocation();
     const { token } = theme.useToken();

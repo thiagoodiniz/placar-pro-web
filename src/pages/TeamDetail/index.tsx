@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { trackEvent } from '../../services/analytics';
 import {
     Button, Form, Input, Typography, Card, Row, Col,
     Spin, theme, Popconfirm, Avatar,
@@ -84,10 +85,12 @@ const TeamDetailPage: React.FC = () => {
         try {
             if (isEditing) {
                 await api.patch(`/teams/${id}`, payload);
+                trackEvent('team_edited', { team_id: id });
                 message.success('Time atualizado com sucesso');
                 setTitle(payload.name);
             } else {
                 const res = await api.post('/teams', payload);
+                trackEvent('team_created', { team_id: res.data.id });
                 message.success('Time criado com sucesso');
                 navigate(`/teams/${res.data.id}`);
             }
@@ -102,6 +105,7 @@ const TeamDetailPage: React.FC = () => {
     const handleDeleteTeam = async () => {
         try {
             await api.delete(`/teams/${id}`);
+            trackEvent('team_deleted', { team_id: id });
             message.success('Time excluído com sucesso');
             navigate('/teams');
         } catch (error) {
@@ -118,8 +122,10 @@ const TeamDetailPage: React.FC = () => {
         try {
             if (isPlayerEdit && editingPlayer) {
                 await api.patch(`/teams/${id}/players/${editingPlayer.id}`, values);
+                trackEvent('player_edited', { team_id: id });
             } else {
                 await api.post(`/teams/${id}/players`, values);
+                trackEvent('player_added', { team_id: id });
             }
             setIsPlayerModalOpen(false);
             playerForm.resetFields();

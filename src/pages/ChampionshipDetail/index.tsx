@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { trackEvent } from '../../services/analytics';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Typography,
@@ -202,6 +203,10 @@ const ChampionshipDetailPage: React.FC = () => {
                     teamName: g.teamName
                 }))
             });
+            trackEvent('score_updated', { match_id: selectedMatch.id, championship_id: id });
+            if (values.status === 'FINISHED') {
+                trackEvent('match_finished', { match_id: selectedMatch.id, championship_id: id });
+            }
             setIsResultModalOpen(false);
             fetchMatches(id!);
             fetchStandings(id!);
@@ -232,6 +237,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const handleFinalize = async () => {
         try {
             await api.post(`/championships/${id}/finalize`);
+            trackEvent('championship_started', { championship_id: id });
             message.success('Campeonato iniciado com sucesso!');
             fetchChampionship(id!);
             fetchMatches(id!);
@@ -245,6 +251,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const handleFinishChampionship = async () => {
         try {
             await api.post(`/championships/${id}/finish`);
+            trackEvent('championship_ended', { championship_id: id });
             message.success('Campeonato finalizado com sucesso!');
             fetchChampionship(id!);
             fetchMatches(id!);
@@ -264,6 +271,7 @@ const ChampionshipDetailPage: React.FC = () => {
             onOk: async () => {
                 try {
                     await api.delete(`/championships/${id}`);
+                    trackEvent('championship_deleted', { championship_id: id });
                     message.success('Campeonato excluído com sucesso!');
                     navigate('/championships');
                 } catch (error) {
@@ -292,6 +300,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 });
             } else {
                 await api.patch(`/championships/${id}`, values);
+                trackEvent('championship_configured', { championship_id: id });
                 setIsConfigModalOpen(false);
                 fetchChampionship(id!);
             }
@@ -568,7 +577,11 @@ const ChampionshipDetailPage: React.FC = () => {
 
             <Tabs
                 activeKey={activeTab}
-                onChange={setActiveTab}
+                onChange={(key) => {
+                    setActiveTab(key);
+                    if (key === 'scorers') trackEvent('viewed_scorers_tab', { championship_id: id });
+                    if (key === 'standings') trackEvent('viewed_standings_tab', { championship_id: id });
+                }}
                 items={[
                     {
                         key: 'standings',

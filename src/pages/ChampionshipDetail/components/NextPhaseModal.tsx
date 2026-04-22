@@ -3,6 +3,7 @@ import { Modal, Button, Space, Typography, Card, Avatar, message } from 'antd';
 import { SwapOutlined, CloseOutlined, UserOutlined } from '@ant-design/icons';
 import { Switch, Tabs } from 'antd';
 import TeamPicker from './TeamPicker';
+import { trackEvent } from '../../../services/analytics';
 
 const { Text } = Typography;
 
@@ -155,6 +156,10 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
             message.error('Por favor, defina todos os times para os confrontos.');
             return;
         }
+        trackEvent('next_phase_started', { 
+            championship_id: championship.id, 
+            silver_bracket_enabled: enableSilverBracket 
+        });
         onSave(matchups as { homeTeamId: string; awayTeamId: string; bracket: 'GOLD' | 'SILVER' }[]);
     };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { trackEvent } from '../../services/analytics';
 import {
     Button, Row, Col,
     Spin, theme, Empty
@@ -58,8 +59,10 @@ const ChampionshipsPage: React.FC = () => {
 
             if (isEditing && selectedChamp) {
                 await api.patch(`/championships/${selectedChamp.id}`, payload);
+                trackEvent('championship_edited', { championship_id: selectedChamp.id, format: payload.format });
             } else {
                 await api.post('/championships', payload);
+                trackEvent('championship_created', { format: payload.format, team_count: payload.teamCount });
             }
 
             setIsModalOpen(false);
