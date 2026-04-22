@@ -34,6 +34,7 @@ interface Championship {
     knockoutMode?: 'RANDOM' | 'RANKED' | null;
     teams: { teamId: string; team: Team }[];
     champion?: string;
+    silverChampion?: string;
 }
 
 interface Group {
@@ -55,6 +56,7 @@ interface Match {
     awayPenalties?: number | null;
     status: MatchStatus;
     phase: string;
+    bracket?: 'GOLD' | 'SILVER';
     round: number;
     location?: string;
     dateTime?: string;
@@ -534,6 +536,7 @@ class MockApiService {
         if (!champ) throw new Error('Championship not found');
 
         let champion: string | undefined;
+        let silverChampion: string | undefined;
 
         if (champ.format === 'LEAGUE') {
             // For league, get teams sorted by points from standings computation
@@ -556,11 +559,11 @@ class MockApiService {
             const sorted = Object.values(pointsMap).sort((a, b) => b.pts - a.pts || b.gd - a.gd);
             if (sorted.length > 0) champion = sorted[0].name;
         } else {
-            // For knockout formats, find winner of the FINAL match
-            const matches = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => m.championshipId === id && m.phase === 'FINAL');
-            if (matches.length > 0) {
-                const finalMatch = matches[0];
-                const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+            // For knockout formats, find winner of the FINAL matches
+            const finals = this.getData<Match>(STORAGE_KEYS.MATCHES).filter(m => m.championshipId === id && m.phase === 'FINAL');
+            const teams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+            
+            const getWinner = (finalMatch: Match) => {
                 const hScore = finalMatch.homeScore ?? 0;
                 const aScore = finalMatch.awayScore ?? 0;
                 let winnerId: string;
@@ -581,11 +584,17 @@ class MockApiService {
                     }
                 }
                 const winnerTeam = teams.find(t => t.id === winnerId);
-                if (winnerTeam) champion = winnerTeam.name;
-            }
+                return winnerTeam?.name;
+            };
+
+            const goldFinal = finals.find(m => (m.bracket || 'GOLD') === 'GOLD');
+            if (goldFinal) champion = getWinner(goldFinal);
+            
+            const silverFinal = finals.find(m => m.bracket === 'SILVER');
+            if (silverFinal) silverChampion = getWinner(silverFinal);
         }
 
-        return this._updateChampionship(id, { status: ChampionshipStatus.FINISHED, champion } as any);
+        return this._updateChampionship(id, { status: ChampionshipStatus.FINISHED, champion, silverChampion } as any);
     }
 
     async startChampionship(id: string, mode: 'RANDOM' | 'MANUALLY') {
@@ -1228,6 +1237,7 @@ class MockApiService {
 
         let nextPhase = '';
         let advancingTeams: any[] = [];
+        const newMatches: Match[] = [];
         const standings = await this.getStandings(championshipId);
 
         if (currentPhase === 'GROUP') {
@@ -1248,108 +1258,142 @@ class MockApiService {
             if (champ.knockoutMode !== 'RANKED') {
                 advancingTeams = advancingTeams.sort(() => Math.random() - 0.5);
             }
-        } else {
-            const phaseMatches = matches.filter(m => m.phase === currentPhase);
-            phaseMatches.forEach(m => {
-                if (m.homeScore !== null && m.awayScore !== null && m.status === MatchStatus.FINISHED) {
-                    let winnerId: string;
-                    if (m.homeScore > m.awayScore) {
-                        winnerId = m.homeTeamId;
-                    } else if (m.awayScore > m.homeScore) {
-                        winnerId = m.awayTeamId;
-                    } else if (m.homePenalties !== null && m.homePenalties !== undefined &&
-                        m.awayPenalties !== null && m.awayPenalties !== undefined) {
-                        winnerId = m.homePenalties > m.awayPenalties ? m.homeTeamId : m.awayTeamId;
-                    } else {
-                        winnerId = Math.random() > 0.5 ? m.homeTeamId : m.awayTeamId; // extreme fallback
+
+            if (champ.knockoutMode === 'RANKED') {
+                if (standings.length === 1) {
+                    const groupAdvancing = standings[0].standings.slice(0, advancingCount);
+                    const numMatches = groupAdvancing.length / 2;
+                    for (let i = 0; i < numMatches; i++) {
+                        newMatches.push({
+                            id: uuidv4(),
+                            championshipId,
+                            homeTeamId: groupAdvancing[i].teamId,
+                            awayTeamId: groupAdvancing[groupAdvancing.length - 1 - i].teamId,
+                            phase: nextPhase,
+                            bracket: 'GOLD',
+                            round: 1,
+                            status: MatchStatus.SCHEDULED,
+                            goals: [],
+                            homeScore: null,
+                            awayScore: null
+                        });
                     }
-                    const winnerTeam = allTeams.find((t: any) => t.id === winnerId);
-                    advancingTeams.push({ 
-                        teamId: winnerId, 
-                        teamName: winnerTeam?.name || 'Desconhecido',
-                        teamLogoUrl: winnerTeam?.logoUrl
-                    });
-                }
-            });
+                } else {
+                    for (let g = 0; g < standings.length; g += 2) {
+                        const groupA = standings[g].standings.slice(0, advancingCount);
+                        const groupB = standings[g + 1] ? standings[g + 1].standings.slice(0, advancingCount) : [];
 
-            const totalAdvancing = advancingTeams.length;
-            if (totalAdvancing === 8) nextPhase = 'QUARTER';
-            else if (totalAdvancing === 4) nextPhase = 'SEMI';
-            else if (totalAdvancing === 2) nextPhase = 'FINAL';
-            else throw new Error(`Número inválido de classificados para a próxima fase: ${totalAdvancing}`);
-        }
-
-        if (!nextPhase) throw new Error('Could not determine next phase');
-
-        const newMatches: Match[] = [];
-
-        if (currentPhase === 'GROUP' && champ.knockoutMode === 'RANKED') {
-            const advancingCount = champ.advancingCount || 2;
-
-            if (standings.length === 1) {
-                const groupAdvancing = standings[0].standings.slice(0, advancingCount);
-                const numMatches = groupAdvancing.length / 2;
-                for (let i = 0; i < numMatches; i++) {
-                    newMatches.push({
-                        id: uuidv4(),
-                        championshipId,
-                        homeTeamId: groupAdvancing[i].teamId,
-                        awayTeamId: groupAdvancing[groupAdvancing.length - 1 - i].teamId,
-                        phase: nextPhase,
-                        round: 1,
-                        status: MatchStatus.SCHEDULED,
-                        goals: [],
-                        homeScore: null,
-                        awayScore: null
-                    });
-                }
-            } else {
-                for (let g = 0; g < standings.length; g += 2) {
-                    const groupA = standings[g].standings.slice(0, advancingCount);
-                    const groupB = standings[g + 1] ? standings[g + 1].standings.slice(0, advancingCount) : [];
-
-                    for (let i = 0; i < Math.min(groupA.length, groupB.length); i++) {
-                        const homeTeam = groupA[i];
-                        const awayTeam = groupB[advancingCount - 1 - i];
-                        if (homeTeam && awayTeam) {
-                            newMatches.push({
-                                id: uuidv4(),
-                                championshipId,
-                                homeTeamId: homeTeam.teamId,
-                                awayTeamId: awayTeam.teamId,
-                                phase: nextPhase,
-                                round: 1,
-                                status: MatchStatus.SCHEDULED,
-                                goals: [],
-                                homeScore: null,
-                                awayScore: null
-                            });
+                        for (let i = 0; i < Math.min(groupA.length, groupB.length); i++) {
+                            const homeTeam = groupA[i];
+                            const awayTeam = groupB[advancingCount - 1 - i];
+                            if (homeTeam && awayTeam) {
+                                newMatches.push({
+                                    id: uuidv4(),
+                                    championshipId,
+                                    homeTeamId: homeTeam.teamId,
+                                    awayTeamId: awayTeam.teamId,
+                                    phase: nextPhase,
+                                    bracket: 'GOLD',
+                                    round: 1,
+                                    status: MatchStatus.SCHEDULED,
+                                    goals: [],
+                                    homeScore: null,
+                                    awayScore: null
+                                });
+                            }
                         }
                     }
                 }
-            }
-        } else {
-            const numMatches = advancingTeams.length / 2;
-            for (let i = 0; i < numMatches; i++) {
-                const homeTeam = advancingTeams[i * 2];
-                const awayTeam = advancingTeams[i * 2 + 1];
+            } else {
+                const numMatches = advancingTeams.length / 2;
+                for (let i = 0; i < numMatches; i++) {
+                    const homeTeam = advancingTeams[i * 2];
+                    const awayTeam = advancingTeams[i * 2 + 1];
 
-                if (homeTeam && awayTeam) {
-                    newMatches.push({
-                        id: uuidv4(),
-                        championshipId,
-                        homeTeamId: homeTeam.teamId,
-                        awayTeamId: awayTeam.teamId,
-                        phase: nextPhase,
-                        round: 1,
-                        status: MatchStatus.SCHEDULED,
-                        goals: [],
-                        homeScore: null,
-                        awayScore: null
-                    });
+                    if (homeTeam && awayTeam) {
+                        newMatches.push({
+                            id: uuidv4(),
+                            championshipId,
+                            homeTeamId: homeTeam.teamId,
+                            awayTeamId: awayTeam.teamId,
+                            phase: nextPhase,
+                            bracket: 'GOLD',
+                            round: 1,
+                            status: MatchStatus.SCHEDULED,
+                            goals: [],
+                            homeScore: null,
+                            awayScore: null
+                        });
+                    }
                 }
             }
+        } else {
+            const phaseMatches = matches.filter(m => m.phase === currentPhase);
+            const brackets: ('GOLD' | 'SILVER')[] = ['GOLD', 'SILVER'];
+            
+            brackets.forEach(bracket => {
+                const bMatches = phaseMatches.filter(m => (m.bracket || 'GOLD') === bracket);
+                if (bMatches.length === 0) return;
+
+                const bAdvancing: any[] = [];
+                bMatches.forEach(m => {
+                    if (m.homeScore !== null && m.awayScore !== null && m.status === MatchStatus.FINISHED) {
+                        let winnerId: string;
+                        if (m.homeScore > m.awayScore) {
+                            winnerId = m.homeTeamId;
+                        } else if (m.awayScore > m.homeScore) {
+                            winnerId = m.awayTeamId;
+                        } else if (m.homePenalties !== null && m.homePenalties !== undefined &&
+                            m.awayPenalties !== null && m.awayPenalties !== undefined) {
+                            winnerId = m.homePenalties > m.awayPenalties ? m.homeTeamId : m.awayTeamId;
+                        } else {
+                            winnerId = Math.random() > 0.5 ? m.homeTeamId : m.awayTeamId;
+                        }
+                        const winnerTeam = allTeams.find((t: any) => t.id === winnerId);
+                        bAdvancing.push({ 
+                            teamId: winnerId, 
+                            teamName: winnerTeam?.name || 'Desconhecido',
+                            teamLogoUrl: winnerTeam?.logoUrl,
+                            bracket
+                        });
+                        advancingTeams.push(bAdvancing[bAdvancing.length - 1]);
+                    }
+                });
+
+                const totalBAdvancing = bAdvancing.length;
+                let bNextPhase = '';
+                if (totalBAdvancing === 8) bNextPhase = 'QUARTER';
+                else if (totalBAdvancing === 4) bNextPhase = 'SEMI';
+                else if (totalBAdvancing === 2) bNextPhase = 'FINAL';
+                else if (totalBAdvancing > 0) throw new Error(`Número inválido de classificados na série ${bracket}: ${totalBAdvancing}`);
+                
+                if (bNextPhase && !nextPhase) nextPhase = bNextPhase; // Assuming both brackets advance to the same phase
+
+                const numMatches = bAdvancing.length / 2;
+                for (let i = 0; i < numMatches; i++) {
+                    const homeTeam = bAdvancing[i * 2];
+                    const awayTeam = bAdvancing[i * 2 + 1];
+
+                    if (homeTeam && awayTeam) {
+                        newMatches.push({
+                            id: uuidv4(),
+                            championshipId,
+                            homeTeamId: homeTeam.teamId,
+                            awayTeamId: awayTeam.teamId,
+                            phase: bNextPhase,
+                            bracket: bracket,
+                            round: 1,
+                            status: MatchStatus.SCHEDULED,
+                            goals: [],
+                            homeScore: null,
+                            awayScore: null
+                        });
+                    }
+                }
+            });
         }
+
+        if (!nextPhase) throw new Error('Could not determine next phase');
 
         return { nextPhase, advancingTeams, previewMatches: newMatches };
     }
@@ -1358,7 +1402,7 @@ class MockApiService {
         return await this._calculateNextPhaseMatches(championshipId);
     }
 
-    async generateNextPhaseMatches(championshipId: string, manualMatches?: { homeTeamId: string; awayTeamId: string }[]) {
+    async generateNextPhaseMatches(championshipId: string, manualMatches?: { homeTeamId: string; awayTeamId: string; bracket?: 'GOLD' | 'SILVER' }[]) {
         const { nextPhase, previewMatches } = await this._calculateNextPhaseMatches(championshipId);
 
         let finalMatches = previewMatches;
@@ -1370,6 +1414,7 @@ class MockApiService {
                 homeTeamId: m.homeTeamId,
                 awayTeamId: m.awayTeamId,
                 phase: nextPhase,
+                bracket: m.bracket || 'GOLD',
                 round: 1,
                 status: MatchStatus.SCHEDULED,
                 goals: [],

@@ -73,7 +73,10 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                             const roundMatches = phaseMatches.filter((m: any) => (m.round || 1) === activeRound);
 
                             const matchesByGroup = roundMatches.reduce((acc: any, m: any) => {
-                                const g = m.groupName || '';
+                                let g = m.groupName || '';
+                                if (phase !== 'GROUP' && m.bracket) {
+                                    g = m.bracket === 'GOLD' ? 'Série Ouro' : 'Série Prata';
+                                }
                                 if (!acc[g]) acc[g] = [];
                                 acc[g].push(m);
                                 return acc;
@@ -104,11 +107,13 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                             </div>
                                         )}
 
-                                        {Object.keys(matchesByGroup).sort().map(gName => (
+                                        {Object.keys(matchesByGroup).sort((a, b) => a.localeCompare(b)).map(gName => (
                                             <div key={gName} style={{ marginBottom: 16 }}>
-                                                <div style={{ paddingLeft: 10, borderLeft: `3px solid ${token.colorPrimary}`, marginBottom: 12 }}>
-                                                    <Text strong style={{ color: token.colorPrimary }}>{gName}</Text>
-                                                </div>
+                                                {gName && (
+                                                    <div style={{ paddingLeft: 10, borderLeft: `3px solid ${token.colorPrimary}`, marginBottom: 12 }}>
+                                                        <Text strong style={{ color: token.colorPrimary }}>{gName}</Text>
+                                                    </div>
+                                                )}
                                                 <List
                                                     dataSource={matchesByGroup[gName]}
                                                     renderItem={(m: any) => {

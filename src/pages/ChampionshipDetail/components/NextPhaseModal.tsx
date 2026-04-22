@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Space, Typography, Card, Avatar, message } from 'antd';
 import { SwapOutlined, CloseOutlined, UserOutlined } from '@ant-design/icons';
+import { Switch, Tabs } from 'antd';
 import TeamPicker from './TeamPicker';
 
 const { Text } = Typography;
@@ -15,7 +16,7 @@ interface NextPhaseModalProps {
         advancingTeams: any[];
         previewMatches: any[];
     } | null;
-    onSave: (matches: { homeTeamId: string; awayTeamId: string }[]) => void;
+    onSave: (matches: { homeTeamId: string; awayTeamId: string; bracket: 'GOLD' | 'SILVER' }[]) => void;
 }
 
 const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
@@ -26,34 +27,51 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
     preview,
     onSave
 }) => {
-    const [matchups, setMatchups] = useState<{ homeTeamId?: string; awayTeamId?: string }[]>([]);
+    const [matchups, setMatchups] = useState<{ homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER' }[]>([]);
     const [selectingSlot, setSelectingSlot] = useState<{ index: number; side: 'home' | 'away' } | null>(null);
+    const [enableSilverBracket, setEnableSilverBracket] = useState(false);
 
-    const totalAdvancingFromGroups = (championship.groupCount || 1) * (championship.advancingCount || 2);
     const isTransitionFromGroups =
         championship.format === 'GROUPS_KNOCKOUT' &&
-        preview?.advancingTeams.length === totalAdvancingFromGroups;
+        preview?.advancingTeams && preview?.advancingTeams.length > 0 &&
+        !preview.advancingTeams.some((t: any) => t.bracket);
+
+    const hasSilverPreview = preview?.previewMatches.some((m: any) => m.bracket === 'SILVER') || false;
 
     useEffect(() => {
         if (isOpen && preview) {
+            let silverEnabled = enableSilverBracket;
+
+            if (!isTransitionFromGroups) {
+                silverEnabled = hasSilverPreview;
+                setEnableSilverBracket(silverEnabled);
+            }
+
             if (isTransitionFromGroups) {
-                setMatchups(Array(preview.previewMatches.length).fill({}));
+                const initial = Array(preview.previewMatches.length).fill({ bracket: 'GOLD' });
+                if (silverEnabled) {
+                    initial.push(...Array(preview.previewMatches.length).fill({ bracket: 'SILVER' }));
+                }
+                setMatchups(initial);
             } else {
                 setMatchups(
                     preview.previewMatches.map(m => ({
                         homeTeamId: m.homeTeamId,
                         awayTeamId: m.awayTeamId,
+                        bracket: m.bracket || 'GOLD',
                     }))
                 );
             }
         }
-    }, [isOpen, preview, championship, standings]);
+    }, [isOpen, preview, championship, standings, enableSilverBracket, isTransitionFromGroups, hasSilverPreview]);
 
     const handleApplyShortcut = () => {
         if (!preview) return;
         if (standings.length >= 2) {
             const advancingCount = championship.advancingCount || 2;
-            const newMatchups = [];
+            const newMatchups: { homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER' }[] = [];
+
+            // Ouro
             for (let g = 0; g < standings.length; g += 2) {
                 const groupA = standings[g]?.standings || [];
                 const groupB = standings[g + 1]?.standings || [];
@@ -64,17 +82,45 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                         newMatchups.push({
                             homeTeamId: homeTeam.teamId,
                             awayTeamId: awayTeam.teamId,
+                            bracket: 'GOLD'
                         });
                     }
                 }
             }
-            setMatchups(newMatchups);
+
+            // Prata
+            if (enableSilverBracket) {
+                for (let g = 0; g < standings.length; g += 2) {
+                    const groupA = standings[g]?.standings || [];
+                    const groupB = standings[g + 1]?.standings || [];
+                    for (let i = 0; i < advancingCount; i++) {
+                        const homeTeam = groupA[i + advancingCount];
+                        const awayTeam = groupB[advancingCount - 1 - i + advancingCount];
+                        if (homeTeam && awayTeam) {
+                            newMatchups.push({
+                                homeTeamId: homeTeam.teamId,
+                                awayTeamId: awayTeam.teamId,
+                                bracket: 'SILVER'
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Pad with empty slots if needed
+            const expectedLength = preview.previewMatches.length * (enableSilverBracket ? 2 : 1);
+            while (newMatchups.length < expectedLength) {
+                newMatchups.push({ bracket: newMatchups.length < preview.previewMatches.length ? 'GOLD' : 'SILVER' });
+            }
+
+            setMatchups(newMatchups.slice(0, expectedLength));
             message.success('Cruzamento olímpico aplicado!');
         } else {
             setMatchups(
                 preview.previewMatches.map(m => ({
                     homeTeamId: m.homeTeamId,
                     awayTeamId: m.awayTeamId,
+                    bracket: m.bracket || 'GOLD'
                 }))
             );
         }
@@ -109,7 +155,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
             message.error('Por favor, defina todos os times para os confrontos.');
             return;
         }
-        onSave(matchups as { homeTeamId: string; awayTeamId: string }[]);
+        onSave(matchups as { homeTeamId: string; awayTeamId: string; bracket: 'GOLD' | 'SILVER' }[]);
     };
 
     const getTeamInfo = (teamId?: string) => {
@@ -130,12 +176,118 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
         .flatMap(m => [m.homeTeamId, m.awayTeamId])
         .filter(Boolean) as string[];
 
-    const availableTeams = preview.advancingTeams
+    let sourceTeams = preview.advancingTeams.map((t: any) => ({ teamId: t.teamId }));
+
+    if (selectingSlot !== null) {
+        const slotBracket = matchups[selectingSlot.index]?.bracket || 'GOLD';
+
+        if (isTransitionFromGroups) {
+            if (slotBracket === 'GOLD') {
+                sourceTeams = preview.advancingTeams.map((t: any) => ({ teamId: t.teamId }));
+            } else {
+                const advancingIds = new Set(preview.advancingTeams.map((t: any) => t.teamId));
+                sourceTeams = [];
+                for (const group of standings) {
+                    for (const st of group.standings) {
+                        if (!advancingIds.has(st.teamId)) {
+                            sourceTeams.push({ teamId: st.teamId });
+                        }
+                    }
+                }
+            }
+        } else {
+            const bracketTeams = preview.advancingTeams.filter((t: any) => t.bracket === slotBracket);
+            if (bracketTeams.length > 0) {
+                sourceTeams = bracketTeams.map((t: any) => ({ teamId: t.teamId }));
+            }
+        }
+    }
+
+    const availableTeams = sourceTeams
         .map((t: any) => {
             const info = getTeamInfo(t.teamId);
             return { id: t.teamId, name: info?.name || 'Desconhecido', logoUrl: info?.logoUrl };
         })
         .filter(t => !selectedTeamIds.includes(t.id));
+
+    const renderMatchupsList = (bracket: 'GOLD' | 'SILVER') => {
+        return (
+            <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                {matchups.map((match, index) => {
+                    if (match.bracket !== bracket) return null;
+                    const homeTeam = getTeamInfo(match.homeTeamId);
+                    const awayTeam = getTeamInfo(match.awayTeamId);
+
+                    return (
+                        <Card
+                            key={index}
+                            size="small"
+                            styles={{ body: { padding: '10px 12px' } }}
+                        >
+                            {/* Match number label */}
+                            <Text
+                                type="secondary"
+                                style={{ fontSize: 11, display: 'block', marginBottom: 8 }}
+                            >
+                                Jogo {index + 1}
+                            </Text>
+
+                            {/* Single-row layout: [home] × [away] */}
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 28px 1fr',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                }}
+                            >
+                                {/* Home slot */}
+                                <TeamSlot
+                                    team={homeTeam}
+                                    label="Mandante"
+                                    align="right"
+                                    onClick={() => setSelectingSlot({ index, side: 'home' })}
+                                    onClear={e => {
+                                        e.stopPropagation();
+                                        const next = [...matchups];
+                                        delete next[index].homeTeamId;
+                                        setMatchups(next);
+                                    }}
+                                />
+
+                                {/* VS divider */}
+                                <div
+                                    style={{
+                                        textAlign: 'center',
+                                        fontWeight: 700,
+                                        fontSize: 13,
+                                        color: '#bfbfbf',
+                                        userSelect: 'none',
+                                    }}
+                                >
+                                    ×
+                                </div>
+
+                                {/* Away slot */}
+                                <TeamSlot
+                                    team={awayTeam}
+                                    label="Visitante"
+                                    align="left"
+                                    onClick={() => setSelectingSlot({ index, side: 'away' })}
+                                    onClear={e => {
+                                        e.stopPropagation();
+                                        const next = [...matchups];
+                                        delete next[index].awayTeamId;
+                                        setMatchups(next);
+                                    }}
+                                />
+                            </div>
+                        </Card>
+                    );
+                })}
+            </Space>
+        );
+    };
 
     return (
         <>
@@ -162,6 +314,13 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                 ]}
             >
                 <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                    {isTransitionFromGroups && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: 8 }}>
+                            <Text strong>Habilitar Série Prata (Consolação)?</Text>
+                            <Switch checked={enableSilverBracket} onChange={setEnableSilverBracket} />
+                        </div>
+                    )}
+
                     {/* Shortcut banner - Only show when transitioning from Groups */}
                     {isTransitionFromGroups && (
                         <div
@@ -186,77 +345,17 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                     )}
 
                     {/* Matchup list */}
-                    {matchups.map((match, index) => {
-                        const homeTeam = getTeamInfo(match.homeTeamId);
-                        const awayTeam = getTeamInfo(match.awayTeamId);
-
-                        return (
-                            <Card
-                                key={index}
-                                size="small"
-                                styles={{ body: { padding: '10px 12px' } }}
-                            >
-                                {/* Match number label */}
-                                <Text
-                                    type="secondary"
-                                    style={{ fontSize: 11, display: 'block', marginBottom: 8 }}
-                                >
-                                    Jogo {index + 1}
-                                </Text>
-
-                                {/* Single-row layout: [home] × [away] */}
-                                <div
-                                    style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 28px 1fr',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                    }}
-                                >
-                                    {/* Home slot */}
-                                    <TeamSlot
-                                        team={homeTeam}
-                                        label="Mandante"
-                                        align="right"
-                                        onClick={() => setSelectingSlot({ index, side: 'home' })}
-                                        onClear={e => {
-                                            e.stopPropagation();
-                                            const next = [...matchups];
-                                            delete next[index].homeTeamId;
-                                            setMatchups(next);
-                                        }}
-                                    />
-
-                                    {/* VS divider */}
-                                    <div
-                                        style={{
-                                            textAlign: 'center',
-                                            fontWeight: 700,
-                                            fontSize: 13,
-                                            color: '#bfbfbf',
-                                            userSelect: 'none',
-                                        }}
-                                    >
-                                        ×
-                                    </div>
-
-                                    {/* Away slot */}
-                                    <TeamSlot
-                                        team={awayTeam}
-                                        label="Visitante"
-                                        align="left"
-                                        onClick={() => setSelectingSlot({ index, side: 'away' })}
-                                        onClear={e => {
-                                            e.stopPropagation();
-                                            const next = [...matchups];
-                                            delete next[index].awayTeamId;
-                                            setMatchups(next);
-                                        }}
-                                    />
-                                </div>
-                            </Card>
-                        );
-                    })}
+                    {enableSilverBracket ? (
+                        <Tabs
+                            defaultActiveKey="GOLD"
+                            items={[
+                                { key: 'GOLD', label: 'Série Ouro', children: renderMatchupsList('GOLD') },
+                                { key: 'SILVER', label: 'Série Prata', children: renderMatchupsList('SILVER') }
+                            ]}
+                        />
+                    ) : (
+                        renderMatchupsList('GOLD')
+                    )}
                 </Space>
             </Modal>
 
