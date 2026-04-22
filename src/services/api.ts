@@ -82,6 +82,14 @@ const api: any = {
             const groupId = url.split('/')[3];
             return { data: await mockApi.generateMatchesForGroup(groupId) };
         }
+        if (url.includes('/auto-distribute-teams')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.autoDistributeTeams(id) };
+        }
+        if (url.includes('/generate-all-matches')) {
+            const id = url.split('/')[2];
+            return { data: await mockApi.generateAllGroupMatches(id) };
+        }
         if (url.includes('/groups')) {
             const id = url.split('/')[2];
             return { data: await mockApi.createGroup(id, body.name, body.teamIds) };

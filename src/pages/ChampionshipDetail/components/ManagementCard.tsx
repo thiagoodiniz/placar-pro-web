@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
-import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import api from '../../../services/api';
 
 interface ManagementCardProps {
@@ -8,7 +8,6 @@ interface ManagementCardProps {
     matches: any[];
     id: string;
     onEditTeams: () => void;
-    onStartClick: () => void;
     onFinalize: () => void;
     onResetGroups: () => void;
     onDeleteChampionship: () => void;
@@ -18,7 +17,9 @@ interface ManagementCardProps {
     canFinishChampionship: boolean;
     onStartNextPhase: () => void;
     onAutoResults: () => void;
-    onResetMatches: () => void;
+    onAutoDistributeTeams: () => void;
+    onGenerateAllMatches: () => void;
+    standings: any[];
 }
 
 const ManagementCard: React.FC<ManagementCardProps> = ({
@@ -26,7 +27,6 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     matches,
     id,
     onEditTeams,
-    onStartClick,
     onFinalize,
     onResetGroups,
     onDeleteChampionship,
@@ -36,49 +36,64 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     canFinishChampionship,
     onStartNextPhase,
     onAutoResults,
-    onResetMatches
+    onAutoDistributeTeams,
+    onGenerateAllMatches,
+    standings
 }) => {
+    const teamsPerGroup = Math.ceil((championship.teamCount || 0) / (championship.groupCount || 1));
+    const allGroupsComplete = standings.length > 0 && standings.every(g => g.standings?.length === teamsPerGroup);
+    const hasAnyTeamInGroups = standings.some(g => g.standings?.length > 0);
+
     return (
         <Card size="small" title="Gestão do Campeonato">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {championship.status === 'DRAFT' && (
-                    <Button icon={<TeamOutlined />} onClick={onEditTeams}>
-                        Editar Times ({championship.teams?.length || 0}/{championship.teamCount})
-                    </Button>
-                )}
-
-                {championship.status === 'DRAFT' && championship.teams?.length > 0 && !championship.matchMode && (
-                    <Button type="primary" icon={<TrophyOutlined />} onClick={onStartClick}>
-                        Definir Confrontos
-                    </Button>
-                )}
-
-                {championship.status === 'DRAFT' && championship.matchMode && (
-                    <Space>
-                        <Tooltip title={matches.length === 0 ? "Você precisa definir os confrontos antes de iniciar o campeonato." : ""}>
+                    <Space wrap>
+                        <Button icon={<TeamOutlined />} onClick={onEditTeams}>
+                            Editar Times ({championship.teams?.length || 0}/{championship.teamCount})
+                        </Button>
+                        <Button
+                            icon={<TeamOutlined />}
+                            onClick={onAutoDistributeTeams}
+                            disabled={championship.teams?.length === 0}
+                        >
+                            Sortear Grupos
+                        </Button>
+                        {allGroupsComplete && (
                             <Button
                                 type="primary"
-                                icon={<PlayCircleOutlined />}
-                                onClick={onFinalize}
-                                disabled={matches.length === 0}
+                                icon={<ThunderboltOutlined />}
+                                onClick={onGenerateAllMatches}
+                                disabled={championship.teams?.length === 0}
                             >
-                                Iniciar Campeonato
+                                Sortear Confrontos
                             </Button>
-                        </Tooltip>
-                        <Button danger icon={<DeleteOutlined />} onClick={onResetGroups}>
-                            Redefinir Grupos
-                        </Button>
+                        )}
+                        {allGroupsComplete && matches.length > 0 && (
+                            <Tooltip title={matches.length === 0 ? "Você precisa definir os confrontos antes de iniciar o campeonato." : ""}>
+                                <Button
+                                    type="primary"
+                                    icon={<PlayCircleOutlined />}
+                                    onClick={onFinalize}
+                                >
+                                    Iniciar Campeonato
+                                </Button>
+                            </Tooltip>
+                        )}
+                        {hasAnyTeamInGroups && (
+                            <Button danger icon={<DeleteOutlined />} onClick={onResetGroups}>
+                                Redefinir Grupos
+                            </Button>
+                        )}
                     </Space>
                 )}
 
-                {championship.status !== 'FINISHED' && matches.length > 0 && (
-                    <Space>
+                {championship.status === 'STARTED' && matches.length > 0 && (
+                    <Space wrap>
                         <Button
                             type="default"
                             onClick={onAutoResults}
                         >Inserir Placar Automático</Button>
-
-                        <Button danger ghost onClick={onResetMatches}>Redefinir Confrontos</Button>
                     </Space>
                 )}
 

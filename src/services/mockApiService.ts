@@ -769,20 +769,30 @@ class MockApiService {
     }
 
     async resetGroups(championshipId: string) {
-        const groups = this.getData<Group>(STORAGE_KEYS.GROUPS);
-        groups.forEach(g => {
+        // Keep groups but clear their team lists
+        let groups = this.getData<Group>(STORAGE_KEYS.GROUPS);
+        groups = groups.map(g => {
             if (g.championshipId === championshipId) {
-                g.teams = [];
+                return { ...g, teams: [] };
             }
+            return g;
         });
         this.setData(STORAGE_KEYS.GROUPS, groups);
 
-        // Also clear matches if they exist
+        // Delete all matches for this championship
         let matches = this.getData<Match>(STORAGE_KEYS.MATCHES);
         matches = matches.filter(m => m.championshipId !== championshipId);
         this.setData(STORAGE_KEYS.MATCHES, matches);
 
-        return { message: 'Groups reset' };
+        // Reset championship state
+        let championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
+        const cIndex = championships.findIndex(c => c.id === championshipId);
+        if (cIndex !== -1) {
+            championships[cIndex].matchMode = undefined;
+        }
+        this.setData(STORAGE_KEYS.CHAMPIONSHIPS, championships);
+
+        return { message: 'Groups and matches reset' };
     }
 
     // Matches
@@ -902,7 +912,6 @@ class MockApiService {
         const teamIds = champ.teams.map(t => t.teamId);
 
         if (champ.format === 'KNOCKOUT') {
-            // Simple knockout pair generation
             for (let i = 0; i < teamIds.length; i += 2) {
                 if (teamIds[i] && teamIds[i + 1]) {
                     await this.createMatch({
@@ -915,7 +924,6 @@ class MockApiService {
                 }
             }
         } else if (champ.format === 'GROUPS_KNOCKOUT') {
-            // Auto assign teams to groups first
             const groupCount = champ.groupCount || 1;
             const createdGroups: Group[] = [];
             for (let i = 0; i < groupCount; i++) {
@@ -924,8 +932,7 @@ class MockApiService {
                 createdGroups.push(g);
             }
 
-            // Distribute teams
-            const allGroups = this.getData<Group>(STORAGE_KEYS.GROUPS); // Re-fetch to ensure latest state
+            const allGroups = this.getData<Group>(STORAGE_KEYS.GROUPS);
             for (let i = 0; i < teamIds.length; i++) {
                 const groupIdx = i % groupCount;
                 const targetGroup = allGroups.find(g => g.id === createdGroups[groupIdx].id);
@@ -937,12 +944,10 @@ class MockApiService {
             }
             this.setData(STORAGE_KEYS.GROUPS, allGroups);
 
-            // Generate matches for each group
-            for (const g of createdGroups) { // Use createdGroups to ensure we only generate for the new groups
+            for (const g of createdGroups) {
                 await this.generateMatchesForGroup(g.id);
             }
         } else if (champ.format === 'LEAGUE') {
-            // Generate round-robin matches for all teams
             const numTeams = teamIds.length;
             const hasBye = numTeams % 2 !== 0;
             const workingTeams = hasBye ? [...teamIds, 'BYE'] : [...teamIds];
@@ -967,11 +972,10 @@ class MockApiService {
                             groupId: 'geral'
                         });
 
-                        // If round-trip is enabled, generate the return match immediately but schedule it in the second half
                         if (champ.roundTrip) {
                             matches.push({
                                 championshipId: champ.id,
-                                homeTeamId: isEvenRound ? home : away, // Reversed from first leg
+                                homeTeamId: isEvenRound ? home : away,
                                 awayTeamId: isEvenRound ? away : home,
                                 phase: 'LEAGUE',
                                 round: round + numRounds,
@@ -986,7 +990,7 @@ class MockApiService {
             const currentMatches = this.getData<Match>(STORAGE_KEYS.MATCHES);
             for (const m of matches) {
                 currentMatches.push({
-                    id: Math.random().toString(36).substr(2, 9),
+                    id: uuidv4(),
                     homeScore: null,
                     awayScore: null,
                     status: MatchStatus.SCHEDULED,
@@ -996,6 +1000,45 @@ class MockApiService {
             }
             this.setData(STORAGE_KEYS.MATCHES, currentMatches);
         }
+    }
+
+    async autoDistributeTeams(championshipId: string) {
+        const championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
+        const champ = championships.find(c => c.id === championshipId);
+        if (!champ || champ.teams.length === 0) return { message: 'No teams to distribute' };
+
+        const teamIds = [...champ.teams.map(t => t.teamId)].sort(() => Math.random() - 0.5);
+        const groups = this.getData<Group>(STORAGE_KEYS.GROUPS).filter(g => g.championshipId === championshipId);
+        
+        if (groups.length === 0) return { message: 'No groups defined' };
+
+        groups.forEach(g => g.teams = []);
+
+        const allTeams = this.getData<Team>(STORAGE_KEYS.TEAMS);
+        for (let i = 0; i < teamIds.length; i++) {
+            const groupIdx = i % groups.length;
+            const tid = teamIds[i];
+            groups[groupIdx].teams.push({ 
+                teamId: tid, 
+                team: allTeams.find(t => t.id === tid) || { id: tid, name: 'Unknown' } as any 
+            });
+        }
+
+        const otherGroups = this.getData<Group>(STORAGE_KEYS.GROUPS).filter(g => g.championshipId !== championshipId);
+        this.setData(STORAGE_KEYS.GROUPS, [...otherGroups, ...groups]);
+        return { message: 'Teams distributed' };
+    }
+
+    async generateAllGroupMatches(championshipId: string) {
+        let matches = this.getData<Match>(STORAGE_KEYS.MATCHES);
+        matches = matches.filter(m => m.championshipId !== championshipId || m.phase !== 'GROUP');
+        this.setData(STORAGE_KEYS.MATCHES, matches);
+
+        const groups = this.getData<Group>(STORAGE_KEYS.GROUPS).filter(g => g.championshipId === championshipId);
+        for (const g of groups) {
+            await this.generateMatchesForGroup(g.id);
+        }
+        return { message: 'All group matches generated' };
     }
 
     // Standings
@@ -1010,6 +1053,20 @@ class MockApiService {
 
         const championships = this.getData<Championship>(STORAGE_KEYS.CHAMPIONSHIPS);
         const champ = championships.find(c => c.id === championshipId);
+
+        if (groups.length === 0 && champ?.format === 'GROUPS_KNOCKOUT') {
+            const count = champ.groupCount || 1;
+            const createdGroups: Group[] = [];
+            for (let i = 0; i < count; i++) {
+                const g = await this.createGroup(championshipId, `Grupo ${String.fromCharCode(65 + i)}`, []);
+                createdGroups.push(g);
+            }
+            return createdGroups.map(group => ({
+                groupId: group.id,
+                groupName: group.name,
+                standings: []
+            }));
+        }
 
         if (groups.length === 0) {
             // If No Groups (like LEAGUE), return based on championship teams and 'geral' group matches

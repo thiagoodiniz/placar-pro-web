@@ -62,7 +62,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
             okText={isEditing ? "Salvar Alterações" : "Criar Campeonato"}
             cancelText="Cancelar"
             width={520}
-            destroyOnClose
+            destroyOnClose={true}
         >
             <Form
                 form={form}

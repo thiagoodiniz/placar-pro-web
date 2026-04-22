@@ -378,26 +378,6 @@ const ChampionshipDetailPage: React.FC = () => {
         } catch (error) { console.error(error); }
     };
 
-    const handleStartClick = () => {
-        Modal.confirm({
-            title: 'Iniciar Confrontos',
-            content: 'Deseja sortear os jogos automaticamente ou definir manualmente?',
-            okText: 'Definir Manualmente',
-            cancelText: 'Sortear Automático',
-            onOk: async () => {
-                await api.post(`/championships/${id}/start`, { mode: 'MANUALLY' });
-                await fetchChampionship(id!);
-                await fetchStandings(id!);
-                await fetchMatches(id!);
-            },
-            onCancel: async () => {
-                await api.post(`/championships/${id}/start`, { mode: 'RANDOM' });
-                await fetchChampionship(id!);
-                await fetchStandings(id!);
-                await fetchMatches(id!);
-            }
-        });
-    };
 
     const addGoal = (player: any) => {
         setMatchGoals([...matchGoals, {
@@ -425,7 +405,9 @@ const ChampionshipDetailPage: React.FC = () => {
 
     if (loading) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-            <Spin size="large" tip="Carregando campeonato..." />
+            <Spin size="large">
+                <div style={{ paddingTop: 40, color: token.colorTextSecondary }}>Carregando campeonato...</div>
+            </Spin>
         </div>
     );
 
@@ -515,7 +497,6 @@ const ChampionshipDetailPage: React.FC = () => {
                             editTeamsForm.setFieldsValue({ teamIds: championship.teams?.map((t: any) => t.teamId) || [] });
                             setIsEditTeamsModalOpen(true);
                         }}
-                        onStartClick={handleStartClick}
                         onFinalize={handleFinalize}
                         onResetGroups={handleResetGroups}
                         onDeleteChampionship={handleDeleteChampionship}
@@ -541,10 +522,21 @@ const ChampionshipDetailPage: React.FC = () => {
                                 fetchMatches(id!); fetchScorers(id!); fetchStandings(id!);
                             } catch (err) { console.error(err); }
                         }}
-                        onResetMatches={async () => {
-                            await api.post(`/championships/${id}/reset`);
-                            fetchChampionship(id!); fetchMatches(id!); setActivePhase('GROUP');
+                        onAutoDistributeTeams={async () => {
+                            try {
+                                await api.post(`/championships/${id}/auto-distribute-teams`);
+                                message.success('Times sorteados nos grupos!');
+                                fetchStandings(id!);
+                            } catch (err) { console.error(err); }
                         }}
+                        onGenerateAllMatches={async () => {
+                            try {
+                                await api.post(`/championships/${id}/generate-all-matches`);
+                                message.success('Confrontos sorteados!');
+                                fetchMatches(id!);
+                            } catch (err) { console.error(err); }
+                        }}
+                        standings={standings}
                     />
                 </Col>
             </Row>
@@ -555,12 +547,12 @@ const ChampionshipDetailPage: React.FC = () => {
                     standings={standings}
                     onEditGroup={(group) => {
                         setSelectedGroup({ id: group.groupId, name: group.groupName, teams: group.standings });
+                        const currentTeamIds = group.standings
+                            .map((s: any) => championship.teams?.find((ct: any) => ct.team?.name === s.teamName)?.teamId)
+                            .filter(Boolean);
                         groupForm.setFieldsValue({
                             name: group.groupName,
-                            teamIds: group.standings.map((s: any) => {
-                                const ct = championship.teams.find((t: any) => t.team.name === s.teamName);
-                                return ct?.teamId;
-                            })
+                            teamIds: currentTeamIds
                         });
                         setIsEditGroupModalOpen(true);
                     }}
@@ -702,20 +694,38 @@ const ChampionshipDetailPage: React.FC = () => {
                 </Form>
             </Modal>
 
-            <Modal title="Editar Grupo" open={isEditGroupModalOpen} onCancel={() => setIsEditGroupModalOpen(false)} onOk={() => groupForm.submit()}>
+            <Modal
+                title={`Editar ${selectedGroup?.name || 'Grupo'}`}
+                open={isEditGroupModalOpen}
+                onCancel={() => setIsEditGroupModalOpen(false)}
+                onOk={() => groupForm.submit()}
+                width={520}
+            >
                 <Form form={groupForm} layout="vertical" onFinish={handleUpdateGroup}>
                     <Form.Item name="name" label="Nome do Grupo" rules={[{ required: true }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="teamIds" label="Times do Grupo" rules={[{ required: true }]}>
-                        <Select mode="multiple" placeholder="Selecione os times">
-                            {championship.teams?.filter((ct: any) => {
-                                const isAlreadyInAnotherGroup = standings.some(g => g.groupId !== selectedGroup?.id && g.standings.some((s: any) => s.teamName === ct.team.name));
-                                return !isAlreadyInAnotherGroup;
-                            }).map((ct: any) => (
-                                <Select.Option key={ct.team.id} value={ct.team.id}>{ct.team.name}</Select.Option>
-                            ))}
-                        </Select>
+                    <Form.Item name="teamIds" label="Times do Grupo">
+                        {(() => {
+                            const teamsPerGroup = Math.ceil((championship.teamCount || 0) / (championship.groupCount || 1));
+                            const takenInOtherGroups = standings
+                                .filter((g: any) => g.groupId !== selectedGroup?.id)
+                                .flatMap((g: any) => g.standings.map((s: any) =>
+                                    championship.teams?.find((ct: any) => ct.team?.name === s.teamName)?.teamId
+                                ).filter(Boolean));
+                            const availableTeams = (championship.teams || [])
+                                .filter((ct: any) => !takenInOtherGroups.includes(ct.teamId))
+                                .map((ct: any) => ct.team)
+                                .filter(Boolean);
+                            return (
+                                <TeamPicker
+                                    teams={availableTeams}
+                                    max={teamsPerGroup}
+                                    value={groupForm.getFieldValue('teamIds') || []}
+                                    onChange={(ids) => groupForm.setFieldsValue({ teamIds: ids })}
+                                />
+                            );
+                        })()}
                     </Form.Item>
                 </Form>
             </Modal>
