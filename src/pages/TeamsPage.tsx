@@ -17,13 +17,14 @@ const { Title, Text } = Typography;
 const TeamsPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
-    const { setTitle } = usePageTitle();
+    const { setTitle, setBackUrl } = usePageTitle();
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         setTitle('Times');
+        setBackUrl(undefined);
         fetchTeams();
     }, []);
 
@@ -54,16 +55,6 @@ const TeamsPage: React.FC = () => {
                     onChange={e => setSearchTerm(e.target.value)}
                     allowClear
                 />
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    size="large"
-                    block
-                    onClick={() => navigate('/teams/new')}
-                    style={{ borderRadius: 12, height: 44 }}
-                >
-                    Novo Time
-                </Button>
             </div>
 
             <Spin spinning={loading}>
@@ -224,6 +215,27 @@ const TeamsPage: React.FC = () => {
                     </Row>
                 )}
             </Spin>
+
+            {/* Floating Action Button */}
+            <Button
+                type="primary"
+                shape="circle"
+                icon={<PlusOutlined style={{ fontSize: 24 }} />}
+                size="large"
+                style={{
+                    position: 'fixed',
+                    bottom: 84, // Above the footer (FOOTER_HEIGHT is 64 + 20 margin)
+                    right: 20,
+                    width: 56,
+                    height: 56,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 99,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+                onClick={() => navigate('/teams/new')}
+            />
         </div>
     );
 };

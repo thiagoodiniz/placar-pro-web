@@ -49,10 +49,10 @@ interface Match {
     groupId?: string;
     homeTeamId: string;
     awayTeamId: string;
-    homeScore: number;
-    awayScore: number;
-    homePenalties?: number;
-    awayPenalties?: number;
+    homeScore: number | null;
+    awayScore: number | null;
+    homePenalties?: number | null;
+    awayPenalties?: number | null;
     status: MatchStatus;
     phase: string;
     round: number;
@@ -183,7 +183,7 @@ const populateChampionshipMatches = (championshipId: string, groups: Group[], pr
                 const aTeam = SEED_TEAMS.find(t => t.id === aId)!;
 
                 // Bias the champion in finished championships group stage to ensure qualification
-                const result = activeMatch ? generateMatchResult(hTeam, aTeam, hId, aId, isFinished ? championName : undefined) : { hScore: 0, aScore: 0, goals: [] };
+                const result = activeMatch ? generateMatchResult(hTeam, aTeam, hId, aId, isFinished ? championName : undefined) : { hScore: null, aScore: null, goals: [] };
 
                 // Sequential dates per round
                 const dateOffset = (roundData.round - 1) * 7 + matchInRoundIdx;
@@ -786,8 +786,8 @@ class MockApiService {
         const matches = this.getData<Match>(STORAGE_KEYS.MATCHES);
         const newMatch: Match = {
             id: uuidv4(),
-            homeScore: 0,
-            awayScore: 0,
+            homeScore: null,
+            awayScore: null,
             status: MatchStatus.SCHEDULED,
             goals: [],
             ...data
@@ -803,8 +803,12 @@ class MockApiService {
         if (index === -1) throw new Error('Match not found');
 
         const updated = { ...matches[index], ...data };
-        if (data.homeScore !== undefined || data.awayScore !== undefined) {
+        
+        // Update status based on score presence
+        if (updated.homeScore !== null && updated.awayScore !== null) {
             updated.status = MatchStatus.FINISHED;
+        } else {
+            updated.status = MatchStatus.SCHEDULED;
         }
 
         // Ensure goals are persisted if provided
@@ -862,8 +866,8 @@ class MockApiService {
         for (const m of matches) {
             const newMatch: Match = {
                 id: uuidv4(),
-                homeScore: 0,
-                awayScore: 0,
+                homeScore: null,
+                awayScore: null,
                 status: MatchStatus.SCHEDULED,
                 goals: [],
                 ...m
@@ -967,8 +971,8 @@ class MockApiService {
             for (const m of matches) {
                 currentMatches.push({
                     id: Math.random().toString(36).substr(2, 9),
-                    homeScore: 0,
-                    awayScore: 0,
+                    homeScore: null,
+                    awayScore: null,
                     status: MatchStatus.SCHEDULED,
                     goals: [],
                     ...m
@@ -1177,8 +1181,8 @@ class MockApiService {
                         round: 1,
                         status: MatchStatus.SCHEDULED,
                         goals: [],
-                        homeScore: 0,
-                        awayScore: 0
+                        homeScore: null,
+                        awayScore: null
                     });
                 }
             } else {
@@ -1199,8 +1203,8 @@ class MockApiService {
                                 round: 1,
                                 status: MatchStatus.SCHEDULED,
                                 goals: [],
-                                homeScore: 0,
-                                awayScore: 0
+                                homeScore: null,
+                                awayScore: null
                             });
                         }
                     }
@@ -1222,8 +1226,8 @@ class MockApiService {
                         round: 1,
                         status: MatchStatus.SCHEDULED,
                         goals: [],
-                        homeScore: 0,
-                        awayScore: 0
+                        homeScore: null,
+                        awayScore: null
                     });
                 }
             }

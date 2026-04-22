@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
-    TeamOutlined, ArrowLeftOutlined, SaveOutlined
+    TeamOutlined, SaveOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
@@ -18,7 +18,7 @@ const TeamDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { token } = theme.useToken();
-    const { setTitle } = usePageTitle();
+    const { setTitle, setBackUrl } = usePageTitle();
 
     const isEditing = !!id && id !== 'new';
     const [loading, setLoading] = useState(isEditing);
@@ -38,6 +38,7 @@ const TeamDetailPage: React.FC = () => {
             fetchTeam();
         } else {
             setTitle('Novo Time');
+            setBackUrl('/teams');
             teamForm.setFieldsValue({ primaryColor: '#16a34a', secondaryColor: '#ffffff' });
         }
     }, [id]);
@@ -50,6 +51,7 @@ const TeamDetailPage: React.FC = () => {
             if (foundTeam) {
                 setPlayers(foundTeam.players || []);
                 setTitle(foundTeam.name);
+                setBackUrl('/teams');
                 teamForm.setFieldsValue({
                     name: foundTeam.name,
                     logoUrl: foundTeam.logoUrl,
@@ -167,27 +169,7 @@ const TeamDetailPage: React.FC = () => {
     return (
         <div style={{ maxWidth: 800, margin: '0 auto', paddingBottom: 40 }}>
             {/* Header Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                <Button
-                    icon={<ArrowLeftOutlined />}
-                    onClick={() => navigate('/teams')}
-                    type="text"
-                >
-                    Voltar
-                </Button>
-                {isEditing && (
-                    <Popconfirm
-                        title="Excluir Time"
-                        description="Tem certeza? Todos os dados vinculados serão perdidos."
-                        onConfirm={handleDeleteTeam}
-                        okText="Sim, excluir"
-                        cancelText="Não"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <Button danger type="text" icon={<DeleteOutlined />}>Excluir Time</Button>
-                    </Popconfirm>
-                )}
-            </div>
+            {/* Team Edit Content */}
 
             <Card style={{ borderRadius: 16, marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Form form={teamForm} layout="vertical" onFinish={handleSaveTeam}>
@@ -241,7 +223,19 @@ const TeamDetailPage: React.FC = () => {
                             </Row>
                         </Col>
                     </Row>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                        {isEditing ? (
+                            <Popconfirm
+                                title="Excluir Time"
+                                description="Tem certeza? Todos os dados vinculados serão perdidos."
+                                onConfirm={handleDeleteTeam}
+                                okText="Sim, excluir"
+                                cancelText="Não"
+                                okButtonProps={{ danger: true }}
+                            >
+                                <Button danger type="text" icon={<DeleteOutlined />}>Excluir Time</Button>
+                            </Popconfirm>
+                        ) : <div />}
                         <Button
                             type="primary"
                             htmlType="submit"

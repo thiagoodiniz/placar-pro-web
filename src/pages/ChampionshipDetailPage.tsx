@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
     Table,
     Button,
@@ -35,7 +35,6 @@ import {
     EnvironmentOutlined,
     FireOutlined,
     DeleteOutlined,
-    ArrowLeftOutlined,
     SettingOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
@@ -187,9 +186,8 @@ const TeamPicker: React.FC<{
 
 const ChampionshipDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const { token } = theme.useToken();
-    const { setTitle } = usePageTitle();
+    const { setTitle, setBackUrl } = usePageTitle();
 
     const [championship, setChampionship] = useState<any>(null);
     const [standings, setStandings] = useState<any[]>([]);
@@ -230,6 +228,7 @@ const ChampionshipDetailPage: React.FC = () => {
             const champ = res.data.find((c: any) => c.id === champId);
             setChampionship(champ);
             if (champ?.name) setTitle(champ.name);
+            setBackUrl('/championships');
         } catch (err) { console.error(err); }
     };
 
@@ -343,8 +342,8 @@ const ChampionshipDetailPage: React.FC = () => {
             id: g.id || Math.random().toString(36).substr(2, 9)
         })));
         resultForm.setFieldsValue({
-            homeScore: match.homeScore || 0,
-            awayScore: match.awayScore || 0,
+            homeScore: match.status === 'FINISHED' ? match.homeScore : (match.homeScore ?? undefined),
+            awayScore: match.status === 'FINISHED' ? match.awayScore : (match.awayScore ?? undefined),
             homePenalties: match.homePenalties ?? undefined,
             awayPenalties: match.awayPenalties ?? undefined,
         });
@@ -598,16 +597,16 @@ const ChampionshipDetailPage: React.FC = () => {
 
     const standingColumns = [
         { title: 'Pos', key: 'pos', width: 50, render: (_: any, __: any, i: number) => i + 1 },
-        { 
-            title: 'Time', 
-            key: 'teamName', 
-            fixed: 'left' as const, 
+        {
+            title: 'Time',
+            key: 'teamName',
+            fixed: 'left' as const,
             width: 140,
             render: (record: any) => (
                 <Space size={8} style={{ width: '100%' }}>
-                    <Avatar 
-                        size="small" 
-                        src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />} 
+                    <Avatar
+                        size="small"
+                        src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />}
                         style={{ backgroundColor: '#f0f0f0', flexShrink: 0 }}
                     >
                         {!record.teamLogoUrl && record.teamName[0].toUpperCase()}
@@ -715,11 +714,6 @@ const ChampionshipDetailPage: React.FC = () => {
 
     return (
         <div style={{ paddingBottom: '24px' }}>
-            <div style={{ marginBottom: '16px' }}>
-                <Button type="link" icon={<ArrowLeftOutlined />} onClick={() => navigate('/championships')} style={{ paddingLeft: 0 }}>
-                    Voltar para Campeonatos
-                </Button>
-            </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                 <div>
@@ -1047,7 +1041,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                                                             teamGoals.forEach((g: any) => {
                                                                                 counts[g.playerName] = (counts[g.playerName] || 0) + 1;
                                                                             });
-                                                                            return Object.entries(counts).map(([name, count]) => 
+                                                                            return Object.entries(counts).map(([name, count]) =>
                                                                                 count > 1 ? `${name} (${count})` : name
                                                                             );
                                                                         };
@@ -1061,8 +1055,8 @@ const ChampionshipDetailPage: React.FC = () => {
                                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (homeScorers.length > 0 || awayScorers.length > 0) ? 4 : 10 }}>
                                                                                         <div style={{ flex: 1, minWidth: 0, textAlign: 'right', paddingRight: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
                                                                                             <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'TBD'}</Text>
-                                                                                            <Avatar 
-                                                                                                size="small" 
+                                                                                            <Avatar
+                                                                                                size="small"
                                                                                                 src={<img src={m.homeTeam?.logoUrl} alt={m.homeTeam?.name} referrerPolicy="no-referrer" />}
                                                                                                 style={{ backgroundColor: '#f5f5f5', flexShrink: 0 }}
                                                                                             >
@@ -1085,8 +1079,8 @@ const ChampionshipDetailPage: React.FC = () => {
                                                                                                 : 'vs'}
                                                                                         </div>
                                                                                         <div style={{ flex: 1, minWidth: 0, textAlign: 'left', paddingLeft: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
-                                                                                            <Avatar 
-                                                                                                size="small" 
+                                                                                            <Avatar
+                                                                                                size="small"
                                                                                                 src={<img src={m.awayTeam?.logoUrl} alt={m.awayTeam?.name} referrerPolicy="no-referrer" />}
                                                                                                 style={{ backgroundColor: '#f5f5f5', flexShrink: 0 }}
                                                                                             >
@@ -1182,8 +1176,8 @@ const ChampionshipDetailPage: React.FC = () => {
                                                 }}>
                                                     {index + 1}
                                                 </div>
-                                                <Avatar 
-                                                    src={<img src={item.photoUrl} alt={item.player} referrerPolicy="no-referrer" />} 
+                                                <Avatar
+                                                    src={<img src={item.photoUrl} alt={item.player} referrerPolicy="no-referrer" />}
                                                     size={32}
                                                     style={{ backgroundColor: '#f0f0f0' }}
                                                 >
@@ -1212,20 +1206,64 @@ const ChampionshipDetailPage: React.FC = () => {
                     <div style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         marginBottom: 20, background: token.colorFillQuaternary,
-                        padding: '16px 20px', borderRadius: 12,
+                        padding: '20px 16px', borderRadius: 12,
+                        gap: 12
                     }}>
-                        <div style={{ textAlign: 'center', flex: 1 }}>
-                            <Title level={5} style={{ margin: '0 0 10px' }}>{selectedMatch?.homeTeam?.name}</Title>
-                            <Form.Item name="homeScore" noStyle><InputNumber min={0} size="large" style={{ width: 72 }} /></Form.Item>
+                        <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+                            <Title level={5} style={{
+                                margin: '0 0 12px',
+                                fontSize: 14,
+                                minHeight: 40,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                lineHeight: 1.2
+                            }}>
+                                {selectedMatch?.homeTeam?.name}
+                            </Title>
+                            <Form.Item name="homeScore" noStyle>
+                                <InputNumber
+                                    min={0}
+                                    size="large"
+                                    style={{ width: '100%', maxWidth: 70 }}
+                                    placeholder="-"
+                                />
+                            </Form.Item>
                         </div>
-                        <div style={{ fontSize: '20px', fontWeight: 700, margin: '0 16px', color: token.colorTextSecondary }}>×</div>
-                        <div style={{ textAlign: 'center', flex: 1 }}>
-                            <Title level={5} style={{ margin: '0 0 10px' }}>{selectedMatch?.awayTeam?.name}</Title>
-                            <Form.Item name="awayScore" noStyle><InputNumber min={0} size="large" style={{ width: 72 }} /></Form.Item>
+
+                        <div style={{
+                            fontSize: '22px',
+                            fontWeight: 700,
+                            color: token.colorTextSecondary,
+                            paddingTop: 40 // Align with inputs
+                        }}>
+                            ×
+                        </div>
+
+                        <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+                            <Title level={5} style={{
+                                margin: '0 0 12px',
+                                fontSize: 14,
+                                minHeight: 40,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                lineHeight: 1.2
+                            }}>
+                                {selectedMatch?.awayTeam?.name}
+                            </Title>
+                            <Form.Item name="awayScore" noStyle>
+                                <InputNumber
+                                    min={0}
+                                    size="large"
+                                    style={{ width: '100%', maxWidth: 70 }}
+                                    placeholder="-"
+                                />
+                            </Form.Item>
                         </div>
                     </div>
 
-                {/* Penalty shootout - only for knockout phases when draw */}
+                    {/* Penalty shootout - only for knockout phases when draw */}
                     {selectedMatch?.phase && selectedMatch?.phase !== 'GROUP' && homeScore === awayScore && homeScore !== undefined && (
                         <div style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarning}50`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
                             <Text strong style={{ color: '#fa8c16' }}>Empate! Resultado dos Pênaltis:</Text>
@@ -1243,9 +1281,9 @@ const ChampionshipDetailPage: React.FC = () => {
                         </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                        <div>
-                            <Divider orientation="left" style={{ fontSize: '14px' }}>Gols: {selectedMatch?.homeTeam?.name}</Divider>
+                    <Row gutter={[24, 24]}>
+                        <Col xs={24} sm={12}>
+                            <Divider orientation="left" style={{ fontSize: '14px', margin: '0 0 12px' }}>Gols: {selectedMatch?.homeTeam?.name}</Divider>
                             <Select
                                 showSearch
                                 style={{ width: '100%', marginBottom: 12 }}
@@ -1258,19 +1296,22 @@ const ChampionshipDetailPage: React.FC = () => {
                                     <Select.Option key={p.id} value={p.id} player={p}>{p.name}</Select.Option>
                                 ))}
                             </Select>
-                            <List
-                                size="small"
-                                dataSource={matchGoals.filter(g => g.teamId === selectedMatch?.homeTeamId)}
-                                renderItem={g => (
-                                    <List.Item actions={[<Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeGoal(g.id)} />]}>
-                                        <Text ellipsis style={{ maxWidth: 100 }}>{g.playerName}</Text>
-                                    </List.Item>
-                                )}
-                            />
-                        </div>
+                            <div style={{ maxHeight: 200, overflowY: 'auto', border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8 }}>
+                                <List
+                                    size="small"
+                                    dataSource={matchGoals.filter(g => g.teamId === selectedMatch?.homeTeamId)}
+                                    renderItem={g => (
+                                        <List.Item actions={[<Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeGoal(g.id)} />]} style={{ padding: '4px 12px' }}>
+                                            <Text ellipsis style={{ maxWidth: '100%' }}>{g.playerName}</Text>
+                                        </List.Item>
+                                    )}
+                                    locale={{ emptyText: <Text type="secondary" style={{ fontSize: 12 }}>Nenhum gol</Text> }}
+                                />
+                            </div>
+                        </Col>
 
-                        <div style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
-                            <Divider orientation="left" style={{ fontSize: '14px' }}>Gols: {selectedMatch?.awayTeam?.name}</Divider>
+                        <Col xs={24} sm={12}>
+                            <Divider orientation="left" style={{ fontSize: '14px', margin: '0 0 12px' }}>Gols: {selectedMatch?.awayTeam?.name}</Divider>
                             <Select
                                 showSearch
                                 style={{ width: '100%', marginBottom: 12 }}
@@ -1283,17 +1324,20 @@ const ChampionshipDetailPage: React.FC = () => {
                                     <Select.Option key={p.id} value={p.id} player={p}>{p.name}</Select.Option>
                                 ))}
                             </Select>
-                            <List
-                                size="small"
-                                dataSource={matchGoals.filter(g => g.teamId === selectedMatch?.awayTeamId)}
-                                renderItem={g => (
-                                    <List.Item actions={[<Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeGoal(g.id)} />]}>
-                                        <Text ellipsis style={{ maxWidth: 100 }}>{g.playerName}</Text>
-                                    </List.Item>
-                                )}
-                            />
-                        </div>
-                    </div>
+                            <div style={{ maxHeight: 200, overflowY: 'auto', border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8 }}>
+                                <List
+                                    size="small"
+                                    dataSource={matchGoals.filter(g => g.teamId === selectedMatch?.awayTeamId)}
+                                    renderItem={g => (
+                                        <List.Item actions={[<Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeGoal(g.id)} />]} style={{ padding: '4px 12px' }}>
+                                            <Text ellipsis style={{ maxWidth: '100%' }}>{g.playerName}</Text>
+                                        </List.Item>
+                                    )}
+                                    locale={{ emptyText: <Text type="secondary" style={{ fontSize: 12 }}>Nenhum gol</Text> }}
+                                />
+                            </div>
+                        </Col>
+                    </Row>
                 </Form>
             </Modal>
 

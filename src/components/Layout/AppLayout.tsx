@@ -6,6 +6,7 @@ import {
     TeamOutlined,
     UserOutlined,
     ReloadOutlined,
+    ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { mockApi } from '../../services/mockApiService';
 
@@ -15,11 +16,15 @@ const { Content } = Layout;
 interface PageTitleContextType {
     title: string;
     setTitle: (t: string) => void;
+    backUrl?: string;
+    setBackUrl: (url?: string) => void;
 }
 
 export const PageTitleContext = createContext<PageTitleContextType>({
     title: 'PlacarPro',
     setTitle: () => { },
+    backUrl: undefined,
+    setBackUrl: () => { },
 });
 
 export const usePageTitle = () => useContext(PageTitleContext);
@@ -85,6 +90,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
     const { token } = theme.useToken();
     const [pageTitle, setPageTitle] = useState('Campeonatos');
+    const [backUrl, setBackUrl] = useState<string | undefined>(undefined);
 
     const navItems = [
         { key: '/championships', icon: <TrophyOutlined />, label: 'Campeonatos' },
@@ -109,7 +115,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
 
     return (
-        <PageTitleContext.Provider value={{ title: pageTitle, setTitle: setPageTitle }}>
+        <PageTitleContext.Provider value={{ title: pageTitle, setTitle: setPageTitle, backUrl, setBackUrl }}>
             <Layout style={{ minHeight: '100vh', background: token.colorBgLayout }}>
 
                 {/* ── Header ── */}
@@ -129,19 +135,39 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         boxShadow: '0 1px 0 rgba(255,255,255,0.06)',
                     }}
                 >
-                    {/* Page title */}
-                    <span style={{
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: 17,
-                        flex: 1,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        marginRight: 12,
-                    }}>
-                        {pageTitle}
-                    </span>
+                    {/* Back button and Page title */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        {backUrl && (
+                            <button
+                                onClick={() => navigate(backUrl)}
+                                style={{
+                                    background: 'rgba(255,255,255,0.1)',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    width: 32,
+                                    height: 32,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <ArrowLeftOutlined style={{ fontSize: 16 }} />
+                            </button>
+                        )}
+                        <span style={{
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: 17,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        }}>
+                            {pageTitle}
+                        </span>
+                    </div>
 
                     <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                         <button

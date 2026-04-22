@@ -18,7 +18,7 @@ const { Title, Text } = Typography;
 const ChampionshipsPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
-    const { setTitle } = usePageTitle();
+    const { setTitle, setBackUrl } = usePageTitle();
 
     const [championships, setChampionships] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,6 +31,7 @@ const ChampionshipsPage: React.FC = () => {
 
     useEffect(() => {
         setTitle('Campeonatos');
+        setBackUrl(undefined);
         fetchData();
     }, []);
 
@@ -114,16 +115,6 @@ const ChampionshipsPage: React.FC = () => {
         <div style={{ paddingBottom: 16 }}>
             {/* ── Action bar ── */}
             <div style={{ marginBottom: 16 }}>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={openCreate}
-                    size="large"
-                    block
-                    style={{ borderRadius: 10 }}
-                >
-                    Novo Campeonato
-                </Button>
             </div>
 
             {/* ── Filters (mobile-first: stacked) ── */}
@@ -376,6 +367,27 @@ const ChampionshipsPage: React.FC = () => {
                 initialValues={selectedChamp}
                 isEditing={isEditing}
                 submitting={submitting}
+            />
+
+            {/* Floating Action Button */}
+            <Button
+                type="primary"
+                shape="circle"
+                icon={<PlusOutlined style={{ fontSize: 24 }} />}
+                size="large"
+                style={{
+                    position: 'fixed',
+                    bottom: 84, // Above the footer
+                    right: 20,
+                    width: 56,
+                    height: 56,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 99,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+                onClick={openCreate}
             />
         </div>
     );
