@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { 
-    Button, Tag, Typography, Card, Row, Col, 
-    Spin, theme, Empty 
+import {
+    Button, Tag, Typography, Card, Row, Col,
+    Spin, theme, Empty
 } from 'antd';
-import { 
-    PlusOutlined, ArrowRightOutlined, SettingOutlined, 
-    TeamOutlined, TrophyOutlined, SearchOutlined 
+import {
+    PlusOutlined, ArrowRightOutlined, SettingOutlined,
+    TeamOutlined, TrophyOutlined, SearchOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Input, Radio, Avatar } from 'antd';
@@ -100,13 +100,23 @@ const ChampionshipsPage: React.FC = () => {
         return matchesSearch && matchesStatus;
     });
 
+    const labelStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        lineHeight: 1,
+        whiteSpace: 'nowrap'
+    }
+
     return (
         <div style={{ paddingBottom: 16 }}>
             {/* ── Action bar ── */}
             <div style={{ marginBottom: 16 }}>
-                <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />} 
+                <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
                     onClick={openCreate}
                     size="large"
                     block
@@ -117,7 +127,7 @@ const ChampionshipsPage: React.FC = () => {
             </div>
 
             {/* ── Filters (mobile-first: stacked) ── */}
-            <div style={{ 
+            <div style={{
                 marginBottom: 20,
                 background: token.colorFillAlter,
                 padding: '14px 14px',
@@ -137,16 +147,44 @@ const ChampionshipsPage: React.FC = () => {
                     allowClear
                 />
                 {/* Status filter below */}
-                <Radio.Group 
-                    value={statusFilter} 
+                <Radio.Group
+                    value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     optionType="button"
                     buttonStyle="solid"
                     style={{ display: 'flex', width: '100%' }}
                 >
-                    <Radio.Button value="ALL" style={{ flex: 1, textAlign: 'center', borderRadius: '8px 0 0 8px' }}>Todos</Radio.Button>
-                    <Radio.Button value="STARTED" style={{ flex: 1, textAlign: 'center' }}>Em Andamento</Radio.Button>
-                    <Radio.Button value="FINISHED" style={{ flex: 1, textAlign: 'center', borderRadius: '0 8px 8px 0' }}>Finalizados</Radio.Button>
+                    <Radio.Button
+                        value="ALL"
+                        style={{
+                            flex: 1,
+                            borderRadius: '8px 0 0 8px',
+                            padding: '4px 6px'
+                        }}
+                    >
+                        <span style={labelStyle}>Todos</span>
+                    </Radio.Button>
+
+                    <Radio.Button
+                        value="STARTED"
+                        style={{
+                            flex: 1,
+                            padding: '4px 6px'
+                        }}
+                    >
+                        <span style={labelStyle}>Em Andamento</span>
+                    </Radio.Button>
+
+                    <Radio.Button
+                        value="FINISHED"
+                        style={{
+                            flex: 1,
+                            borderRadius: '0 8px 8px 0',
+                            padding: '4px 6px'
+                        }}
+                    >
+                        <span style={labelStyle}>Finalizados</span>
+                    </Radio.Button>
                 </Radio.Group>
             </div>
 
@@ -167,7 +205,7 @@ const ChampionshipsPage: React.FC = () => {
                             const status = statusConfig[champ.status] || statusConfig.DRAFT;
                             const teamsFilled = champ.teams?.length || 0;
                             const teamsTotal = champ.teamCount || 1;
-                            
+
                             const championTeam = champ.teams?.find((t: any) => t.team.name === champ.champion);
                             const championLogo = championTeam?.team.logoUrl;
 
@@ -176,8 +214,8 @@ const ChampionshipsPage: React.FC = () => {
                                     <Card
                                         hoverable
                                         styles={{ body: { padding: 0 } }}
-                                        style={{ 
-                                            overflow: 'hidden', 
+                                        style={{
+                                            overflow: 'hidden',
                                             borderRadius: 20,
                                             border: `1px solid ${token.colorBorderSecondary}`,
                                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -192,16 +230,16 @@ const ChampionshipsPage: React.FC = () => {
                                                         {champ.name}
                                                     </Title>
                                                 </div>
-                                                <Tag color={status.color} style={{ 
-                                                    margin: 0, 
-                                                    borderRadius: 20, 
-                                                    border: 'none', 
+                                                <Tag color={status.color} style={{
+                                                    margin: 0,
+                                                    borderRadius: 20,
+                                                    border: 'none',
                                                     padding: '2px 10px',
                                                     fontSize: 11,
                                                     textTransform: 'uppercase',
                                                     letterSpacing: '0.5px',
-                                                    background: `${status.color}15`, 
-                                                    color: status.color, 
+                                                    background: `${status.color}15`,
+                                                    color: status.color,
                                                     fontWeight: 700,
                                                     whiteSpace: 'nowrap',
                                                 }}>
@@ -210,12 +248,12 @@ const ChampionshipsPage: React.FC = () => {
                                             </div>
 
                                             <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                                <div style={{ 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    gap: 5, 
-                                                    background: token.colorFillTertiary, 
-                                                    padding: '4px 10px', 
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 5,
+                                                    background: token.colorFillTertiary,
+                                                    padding: '4px 10px',
                                                     borderRadius: 8,
                                                     fontSize: 12,
                                                     color: token.colorTextSecondary
@@ -223,13 +261,13 @@ const ChampionshipsPage: React.FC = () => {
                                                     <TrophyOutlined style={{ fontSize: 13 }} />
                                                     {formatLabel[champ.format]}
                                                 </div>
-                                                
-                                                <div style={{ 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    gap: 5, 
-                                                    background: token.colorFillTertiary, 
-                                                    padding: '4px 10px', 
+
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 5,
+                                                    background: token.colorFillTertiary,
+                                                    padding: '4px 10px',
                                                     borderRadius: 8,
                                                     fontSize: 12,
                                                     color: token.colorTextSecondary
@@ -237,11 +275,11 @@ const ChampionshipsPage: React.FC = () => {
                                                     <TeamOutlined style={{ fontSize: 13 }} />
                                                     {teamsFilled} / {teamsTotal} Times
                                                 </div>
-                                                
+
                                                 {champ.format === 'GROUPS_KNOCKOUT' && (
-                                                    <div style={{ 
-                                                        background: token.colorFillTertiary, 
-                                                        padding: '4px 10px', 
+                                                    <div style={{
+                                                        background: token.colorFillTertiary,
+                                                        padding: '4px 10px',
                                                         borderRadius: 8,
                                                         fontSize: 12,
                                                         color: token.colorTextSecondary
@@ -259,17 +297,17 @@ const ChampionshipsPage: React.FC = () => {
                                                     borderRadius: 12, border: '1px solid rgba(250,219,20,0.2)',
                                                 }}>
                                                     <div style={{ position: 'relative' }}>
-                                                        <Avatar 
-                                                            src={<img src={championLogo} referrerPolicy="no-referrer" alt={champ.champion} />} 
-                                                            size={38} 
-                                                            icon={<TeamOutlined />} 
+                                                        <Avatar
+                                                            src={<img src={championLogo} referrerPolicy="no-referrer" alt={champ.champion} />}
+                                                            size={38}
+                                                            icon={<TeamOutlined />}
                                                             style={{ border: '2px solid #fadb14', background: '#fff' }}
                                                         />
-                                                        <div style={{ 
+                                                        <div style={{
                                                             position: 'absolute', bottom: -4, right: -4,
-                                                            background: '#fadb14', 
-                                                            width: 16, height: 16, 
-                                                            borderRadius: '50%', 
+                                                            background: '#fadb14',
+                                                            width: 16, height: 16,
+                                                            borderRadius: '50%',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                                                             border: '2px solid #fff'
@@ -284,9 +322,9 @@ const ChampionshipsPage: React.FC = () => {
                                                 </div>
                                             ) : (
                                                 <div style={{ height: 52, display: 'flex', alignItems: 'center' }}>
-                                                     <Text type="secondary" style={{ fontSize: 13, fontStyle: 'italic', opacity: 0.7 }}>
+                                                    <Text type="secondary" style={{ fontSize: 13, fontStyle: 'italic', opacity: 0.7 }}>
                                                         {champ.status === 'STARTED' ? 'Competição em progresso...' : 'Preparando início do torneio...'}
-                                                     </Text>
+                                                    </Text>
                                                 </div>
                                             )}
                                         </div>
@@ -300,24 +338,24 @@ const ChampionshipsPage: React.FC = () => {
                                             }}
                                             onClick={e => e.stopPropagation()}
                                         >
-                                            <Button 
-                                                size="middle" 
-                                                type="text" 
-                                                icon={<SettingOutlined />} 
+                                            <Button
+                                                size="middle"
+                                                type="text"
+                                                icon={<SettingOutlined />}
                                                 onClick={() => openEdit(champ)}
                                                 style={{ borderRadius: 8, fontWeight: 500 }}
                                             >
                                                 Ajustar
                                             </Button>
                                             <Button
-                                                size="middle" 
+                                                size="middle"
                                                 type="primary"
                                                 icon={<ArrowRightOutlined />}
                                                 onClick={() => navigate(`/championships/${champ.id}`)}
-                                                style={{ 
-                                                    borderRadius: 8, 
+                                                style={{
+                                                    borderRadius: 8,
                                                     fontWeight: 600,
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)' 
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                                 }}
                                             >
                                                 Gerenciar
