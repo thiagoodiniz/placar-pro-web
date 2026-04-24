@@ -25,7 +25,7 @@ Sentry.init({
 // Inicializa o PostHog Analytics
 initAnalytics();
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '2.0.0';
 const storedVersion = localStorage.getItem('APP_VERSION');
 
 if (storedVersion !== APP_VERSION) {
