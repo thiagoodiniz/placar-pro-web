@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs, Button, Empty, Typography, Space, Card, List, Avatar, Divider, theme } from 'antd';
 import { PlusOutlined, EnvironmentOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Text } = Typography;
 
@@ -29,12 +30,13 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
     onOpenManualMatchModal
 }) => {
     const { token } = theme.useToken();
+    const { user } = useAuth();
 
     return (
         <div style={{ position: 'relative' }}>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    {championship.status === 'DRAFT' && championship.matchMode === 'MANUALLY' && championship.status !== 'FINISHED' && (
+                    {championship.status === 'DRAFT' && championship.matchMode === 'MANUALLY' && championship.status !== 'FINISHED' && user?.role && user.role !== 'USER' && (
                         <Button type="primary" icon={<PlusOutlined />} onClick={onOpenManualMatchModal}>Definir Confronto</Button>
                     )}
                 </div>
@@ -194,7 +196,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                             <span><EnvironmentOutlined /> {m.location || 'Local TBD'}</span>
                                                                             <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora TBD'}</span>
                                                                         </Space>
-                                                                        {championship.status !== 'FINISHED' && (
+                                                                        {championship.status !== 'FINISHED' && user?.role && user.role !== 'USER' && (
                                                                             <Space>
                                                                                 <Button size="small" icon={<EditOutlined />} onClick={() => onOpenDetailsModal(m)} />
                                                                                 <Button

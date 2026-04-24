@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import ChampionshipModal from '../../components/ChampionshipModal';
 import { usePageTitle } from '../../components/Layout/AppLayout';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Sub-components
 import ChampionshipFilters from './components/ChampionshipFilters';
@@ -20,6 +21,7 @@ const ChampionshipsPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
     const { setTitle, setBackUrl } = usePageTitle();
+    const { user } = useAuth();
 
     const [championships, setChampionships] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -113,9 +115,11 @@ const ChampionshipsPage: React.FC = () => {
                         description="Nenhum campeonato ainda"
                         style={{ padding: '64px 0' }}
                     >
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedChamp(null); setIsEditing(false); setIsModalOpen(true); }}>
-                            Criar Primeiro Campeonato
-                        </Button>
+                        {user?.role && user.role !== 'USER' && (
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedChamp(null); setIsEditing(false); setIsModalOpen(true); }}>
+                                Criar Primeiro Campeonato
+                            </Button>
+                        )}
                     </Empty>
                 ) : (
                     <Row gutter={[16, 16]}>
@@ -144,25 +148,27 @@ const ChampionshipsPage: React.FC = () => {
             />
 
             {/* Floating Action Button */}
-            <Button
-                type="primary"
-                shape="circle"
-                icon={<PlusOutlined style={{ fontSize: 24 }} />}
-                size="large"
-                style={{
-                    position: 'fixed',
-                    bottom: 84, // Above the footer
-                    right: 20,
-                    width: 56,
-                    height: 56,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    zIndex: 99,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}
-                onClick={() => { setSelectedChamp(null); setIsEditing(false); setIsModalOpen(true); }}
-            />
+            {user?.role && user.role !== 'USER' && (
+                <Button
+                    type="primary"
+                    shape="circle"
+                    icon={<PlusOutlined style={{ fontSize: 24 }} />}
+                    size="large"
+                    style={{
+                        position: 'fixed',
+                        bottom: 84, // Above the footer
+                        right: 20,
+                        width: 56,
+                        height: 56,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        zIndex: 99,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => { setSelectedChamp(null); setIsEditing(false); setIsModalOpen(true); }}
+                />
+            )}
         </div>
     );
 };

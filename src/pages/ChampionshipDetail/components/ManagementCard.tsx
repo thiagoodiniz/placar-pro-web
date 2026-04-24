@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
 import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface ManagementCardProps {
     championship: any;
@@ -40,6 +41,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     standings,
     loading
 }) => {
+    const { user } = useAuth();
     const teamsPerGroup = Math.ceil((championship.teamCount || 0) / (championship.groupCount || 1));
     const allGroupsComplete = standings.length > 0 && standings.every(g => g.standings?.length === teamsPerGroup);
     const hasAnyTeamInGroups = standings.some(g => g.standings?.length > 0);
@@ -89,7 +91,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                     </Space>
                 )}
 
-                {championship.status === 'STARTED' && matches.length > 0 && (
+                {championship.status === 'STARTED' && matches.length > 0 && user?.role === 'ADMIN' && (
                     <Space wrap>
                         <Button
                             type="default"

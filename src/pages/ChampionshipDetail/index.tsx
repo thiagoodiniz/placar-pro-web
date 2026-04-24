@@ -39,9 +39,12 @@ import MatchResultModal from './components/MatchResultModal';
 import TeamPicker from './components/TeamPicker';
 import NextPhaseModal from './components/NextPhaseModal';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 const { Title, Text } = Typography;
 
 const ChampionshipDetailPage: React.FC = () => {
+    const { user } = useAuth();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { token } = theme.useToken();
@@ -567,92 +570,94 @@ const ChampionshipDetailPage: React.FC = () => {
                 </div>
             )}
 
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-                <Col span={24}>
-                    <ManagementCard
-                        championship={championship}
-                        matches={matches}
-                        id={id!}
-                        onEditTeams={() => {
-                            editTeamsForm.setFieldsValue({ teamIds: championship.teams?.map((t: any) => t.teamId) || [] });
-                            setIsEditTeamsModalOpen(true);
-                        }}
-                        onFinalize={handleFinalize}
-                        onResetGroups={handleResetGroups}
-                        onDeleteChampionship={handleDeleteChampionship}
-                        onFinishChampionship={handleFinishChampionship}
-                        canStartNextPhase={canStartNextPhase}
-                        nextPhaseName={nextPhaseName}
-                        canFinishChampionship={canFinishChampionship}
-                        loading={submitting}
-                        onStartNextPhase={async () => {
-                            setSubmitting(true);
-                            const hide = message.loading(`Iniciando ${nextPhaseName}...`, 0);
-                            try {
-                                const res = await api.post(`/championships/${id}/next-phase-preview`);
-                                setNextPhasePreview(res.data);
-                                setIsNextPhaseModalOpen(true);
-                                hide();
-                            } catch (err) { 
-                                console.error(err); 
-                                hide();
-                                message.error('Erro ao calcular próxima fase');
-                            } finally {
-                                setSubmitting(false);
-                            }
-                        }}
-                        onAutoResults={async () => {
-                            setSubmitting(true);
-                            const hide = message.loading('Gerando resultados...', 0);
-                            try {
-                                await api.post(`/championships/${id}/auto-results`);
-                                await Promise.all([fetchMatches(id!), fetchScorers(id!), fetchStandings(id!)]);
-                                hide();
-                                message.success('Resultados gerados com sucesso!');
-                            } catch (err) { 
-                                console.error(err); 
-                                hide();
-                                message.error('Erro ao gerar resultados');
-                            } finally {
-                                setSubmitting(false);
-                            }
-                        }}
-                        onAutoDistributeTeams={async () => {
-                            setSubmitting(true);
-                            const hide = message.loading('Sorteando grupos...', 0);
-                            try {
-                                await api.post(`/championships/${id}/auto-distribute-teams`);
-                                await fetchStandings(id!);
-                                hide();
-                                message.success('Times sorteados nos grupos!');
-                            } catch (err) { 
-                                console.error(err); 
-                                hide();
-                                message.error('Erro ao sortear grupos');
-                            } finally {
-                                setSubmitting(false);
-                            }
-                        }}
-                        onGenerateAllMatches={async () => {
-                            setSubmitting(true);
-                            const hide = message.loading('Sorteando confrontos...', 0);
-                            try {
-                                await api.post(`/championships/${id}/generate-all-matches`);
-                                await fetchMatches(id!);
-                                hide();
-                                message.success('Confrontos sorteados!');
-                            } catch (err) { 
-                                console.error(err); 
-                                hide();
-                                message.error('Erro ao sortear confrontos');
-                            } finally {
-                                setSubmitting(false);
-                            }
-                        }}
-                        standings={standings}
-                    />
-                </Col>
-            </Row>
+            {user?.role && user.role !== 'USER' && (
+                <Row gutter={16} style={{ marginBottom: 24 }}>
+                    <Col span={24}>
+                        <ManagementCard
+                            championship={championship}
+                            matches={matches}
+                            id={id!}
+                            onEditTeams={() => {
+                                editTeamsForm.setFieldsValue({ teamIds: championship.teams?.map((t: any) => t.teamId) || [] });
+                                setIsEditTeamsModalOpen(true);
+                            }}
+                            onFinalize={handleFinalize}
+                            onResetGroups={handleResetGroups}
+                            onDeleteChampionship={handleDeleteChampionship}
+                            onFinishChampionship={handleFinishChampionship}
+                            canStartNextPhase={canStartNextPhase}
+                            nextPhaseName={nextPhaseName}
+                            canFinishChampionship={canFinishChampionship}
+                            loading={submitting}
+                            onStartNextPhase={async () => {
+                                setSubmitting(true);
+                                const hide = message.loading(`Iniciando ${nextPhaseName}...`, 0);
+                                try {
+                                    const res = await api.post(`/championships/${id}/next-phase-preview`);
+                                    setNextPhasePreview(res.data);
+                                    setIsNextPhaseModalOpen(true);
+                                    hide();
+                                } catch (err) { 
+                                    console.error(err); 
+                                    hide();
+                                    message.error('Erro ao calcular próxima fase');
+                                } finally {
+                                    setSubmitting(false);
+                                }
+                            }}
+                            onAutoResults={async () => {
+                                setSubmitting(true);
+                                const hide = message.loading('Gerando resultados...', 0);
+                                try {
+                                    await api.post(`/championships/${id}/auto-results`);
+                                    await Promise.all([fetchMatches(id!), fetchScorers(id!), fetchStandings(id!)]);
+                                    hide();
+                                    message.success('Resultados gerados com sucesso!');
+                                } catch (err) { 
+                                    console.error(err); 
+                                    hide();
+                                    message.error('Erro ao gerar resultados');
+                                } finally {
+                                    setSubmitting(false);
+                                }
+                            }}
+                            onAutoDistributeTeams={async () => {
+                                setSubmitting(true);
+                                const hide = message.loading('Sorteando grupos...', 0);
+                                try {
+                                    await api.post(`/championships/${id}/auto-distribute-teams`);
+                                    await fetchStandings(id!);
+                                    hide();
+                                    message.success('Times sorteados nos grupos!');
+                                } catch (err) { 
+                                    console.error(err); 
+                                    hide();
+                                    message.error('Erro ao sortear grupos');
+                                } finally {
+                                    setSubmitting(false);
+                                }
+                            }}
+                            onGenerateAllMatches={async () => {
+                                setSubmitting(true);
+                                const hide = message.loading('Sorteando confrontos...', 0);
+                                try {
+                                    await api.post(`/championships/${id}/generate-all-matches`);
+                                    await fetchMatches(id!);
+                                    hide();
+                                    message.success('Confrontos sorteados!');
+                                } catch (err) { 
+                                    console.error(err); 
+                                    hide();
+                                    message.error('Erro ao sortear confrontos');
+                                } finally {
+                                    setSubmitting(false);
+                                }
+                            }}
+                            standings={standings}
+                        />
+                    </Col>
+                </Row>
+            )}
 
             {championship.status === 'DRAFT' && championship.format === 'GROUPS_KNOCKOUT' && standings.length > 0 && (
                 <GroupsOverview

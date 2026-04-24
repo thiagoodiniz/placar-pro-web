@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Typography, Tag, Avatar, Button, theme } from 'antd';
 import { TrophyOutlined, TeamOutlined, SettingOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -20,6 +21,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
     onManage
 }) => {
     const { token } = theme.useToken();
+    const { user } = useAuth();
     const status = statusConfig[champ.status] || statusConfig.DRAFT;
     const teamsFilled = champ.teams?.length || 0;
     const teamsTotal = champ.teamCount || 1;
@@ -155,15 +157,19 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                <Button
-                    size="middle"
-                    type="text"
-                    icon={<SettingOutlined />}
-                    onClick={() => onEdit(champ)}
-                    style={{ borderRadius: 8, fontWeight: 500 }}
-                >
-                    Ajustar
-                </Button>
+                {user?.role && user.role !== 'USER' ? (
+                    <Button
+                        size="middle"
+                        type="text"
+                        icon={<SettingOutlined />}
+                        onClick={() => onEdit(champ)}
+                        style={{ borderRadius: 8, fontWeight: 500 }}
+                    >
+                        Ajustar
+                    </Button>
+                ) : (
+                    <div />
+                )}
                 <Button
                     size="middle"
                     type="primary"

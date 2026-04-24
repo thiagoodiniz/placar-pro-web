@@ -1,6 +1,7 @@
 import React from 'react';
 import { Typography, Card, List, Button, Popconfirm, Avatar, Empty, theme } from 'antd';
 import { TeamOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title } = Typography;
 
@@ -14,6 +15,7 @@ interface PlayerListProps {
 
 const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelete, loading }) => {
     const { token } = theme.useToken();
+    const { user } = useAuth();
 
     return (
         <div style={{ marginTop: 16 }}>
@@ -21,23 +23,27 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelet
                 <Title level={4} style={{ margin: 0 }}>
                     <TeamOutlined /> Jogadores ({players.length})
                 </Title>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={onAdd}
-                    style={{ borderRadius: 8 }}
-                    disabled={loading}
-                >
-                    Adicionar
-                </Button>
+                {user?.role && user.role !== 'USER' && (
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={onAdd}
+                        style={{ borderRadius: 8 }}
+                        disabled={loading}
+                    >
+                        Adicionar
+                    </Button>
+                )}
             </div>
 
             {players.length === 0 ? (
                 <Card style={{ borderRadius: 16, textAlign: 'center', padding: '40px 0', border: '1px dashed #d9d9d9' }}>
                     <Empty description="Nenhum jogador cadastrado" />
-                    <Button type="dashed" icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 16 }} disabled={loading}>
-                        Adicionar Primeiro Jogador
-                    </Button>
+                    {user?.role && user.role !== 'USER' && (
+                        <Button type="dashed" icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 16 }} disabled={loading}>
+                            Adicionar Primeiro Jogador
+                        </Button>
+                    )}
                 </Card>
             ) : (
                 <List
@@ -48,12 +54,12 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelet
                             <Card
                                 size="small"
                                 style={{ borderRadius: 12 }}
-                                actions={[
+                                actions={user?.role && user.role !== 'USER' ? [
                                     <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(player)} disabled={loading}>Editar</Button>,
                                     <Popconfirm title="Remover jogador?" onConfirm={() => onDelete(player.id)} disabled={loading}>
                                         <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={loading}>Remover</Button>
                                     </Popconfirm>
-                                ]}
+                                ] : []}
                             >
                                 <Card.Meta
                                     avatar={

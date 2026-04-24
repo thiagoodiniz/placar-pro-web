@@ -1,12 +1,16 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import { Layout, Avatar, theme } from 'antd';
+import { Layout, Avatar, theme, Dropdown } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     TrophyOutlined,
     TeamOutlined,
     UserOutlined,
     ArrowLeftOutlined,
+    LogoutOutlined,
+    SettingOutlined,
 } from '@ant-design/icons';
+import { useAuth } from '../../contexts/AuthContext';
+import LoginModal from '../Auth/LoginModal';
 
 const { Content } = Layout;
 
@@ -90,6 +94,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { token } = theme.useToken();
+    const { user, logout } = useAuth();
+    const [loginModalOpen, setLoginModalOpen] = useState(false);
     const [pageTitle, setPageTitle] = useState('Campeonatos');
     const [backUrl, setBackUrl] = useState<string | undefined>(undefined);
 
@@ -166,16 +172,50 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <div style={{ flex: 1 }} />
 
                     {/* Login Avatar */}
-                    <Avatar
-                        size={36}
-                        icon={<UserOutlined />}
-                        style={{
-                            background: token.colorPrimary,
-                            cursor: 'pointer',
-                            flexShrink: 0,
-                            boxShadow: `0 0 0 2px rgba(255,255,255,0.15)`,
-                        }}
-                    />
+                    {user ? (
+                        <Dropdown
+                            menu={{
+                                items: [
+                                    ...(user.role === 'ADMIN' ? [{ 
+                                        key: 'users', 
+                                        label: 'Gerenciar Usuários', 
+                                        icon: <SettingOutlined />, 
+                                        onClick: () => navigate('/users') 
+                                    }] : []),
+                                    { 
+                                        key: 'logout', 
+                                        label: 'Sair', 
+                                        icon: <LogoutOutlined />, 
+                                        onClick: logout 
+                                    },
+                                ]
+                            }}
+                            trigger={['click']}
+                        >
+                            <Avatar
+                                size={36}
+                                src={user.avatarUrl}
+                                icon={!user.avatarUrl && <UserOutlined />}
+                                style={{
+                                    background: token.colorPrimary,
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                    boxShadow: `0 0 0 2px rgba(255,255,255,0.15)`,
+                                }}
+                            />
+                        </Dropdown>
+                    ) : (
+                        <Avatar
+                            size={36}
+                            icon={<UserOutlined />}
+                            onClick={() => setLoginModalOpen(true)}
+                            style={{
+                                background: 'rgba(255,255,255,0.2)',
+                                cursor: 'pointer',
+                                flexShrink: 0,
+                            }}
+                        />
+                    )}
                 </div>
 
                 {/* ── Content ── */}
@@ -190,6 +230,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         {children}
                     </div>
                 </Content>
+
+                <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
 
                 {/* ── Bottom Navigation Footer ── */}
                 <div

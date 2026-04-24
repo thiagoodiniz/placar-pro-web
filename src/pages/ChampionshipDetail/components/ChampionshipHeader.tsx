@@ -1,6 +1,7 @@
 import React from 'react';
 import { Typography, Tag, Space, Button } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +11,7 @@ interface ChampionshipHeaderProps {
 }
 
 const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, onOpenConfig }) => {
+    const { user } = useAuth();
     return (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
             <div>
@@ -26,7 +28,7 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
             </div>
             <Space direction="vertical" align="end">
                 <Space>
-                    {championship.status !== 'FINISHED' && (
+                    {championship.status !== 'FINISHED' && user?.role && user.role !== 'USER' && (
                         <Button icon={<SettingOutlined />} onClick={onOpenConfig} />
                     )}
                 </Space>

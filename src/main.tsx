@@ -2,6 +2,8 @@ import ReactDOM from 'react-dom/client'
 import { ConfigProvider } from 'antd'
 import ptBR from 'antd/locale/pt_BR'
 import * as Sentry from "@sentry/react"
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { AuthProvider } from './contexts/AuthContext'
 import App from './App.tsx'
 import { themeConfig } from './theme/theme.ts'
 import './index.css'
@@ -37,8 +39,12 @@ if (storedVersion !== APP_VERSION) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <Sentry.ErrorBoundary fallback={<div>Ocorreu um erro. Nossa equipe foi notificada.</div>}>
-        <ConfigProvider theme={themeConfig} locale={ptBR}>
-            <App />
-        </ConfigProvider>
+        <AuthProvider>
+            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+                <ConfigProvider theme={themeConfig} locale={ptBR}>
+                    <App />
+                </ConfigProvider>
+            </GoogleOAuthProvider>
+        </AuthProvider>
     </Sentry.ErrorBoundary>,
 )

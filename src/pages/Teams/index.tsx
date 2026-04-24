@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { usePageTitle } from '../../components/Layout/AppLayout';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Sub-components
 import TeamCard from './components/TeamCard';
@@ -17,6 +18,7 @@ const TeamsPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
     const { setTitle, setBackUrl } = usePageTitle();
+    const { user } = useAuth();
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -78,25 +80,27 @@ const TeamsPage: React.FC = () => {
             </Spin>
 
             {/* Floating Action Button */}
-            <Button
-                type="primary"
-                shape="circle"
-                icon={<PlusOutlined style={{ fontSize: 24 }} />}
-                size="large"
-                style={{
-                    position: 'fixed',
-                    bottom: 84, // Above the footer
-                    right: 20,
-                    width: 56,
-                    height: 56,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    zIndex: 99,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}
-                onClick={() => navigate('/teams/new')}
-            />
+            {user?.role && user.role !== 'USER' && (
+                <Button
+                    type="primary"
+                    shape="circle"
+                    icon={<PlusOutlined style={{ fontSize: 24 }} />}
+                    size="large"
+                    style={{
+                        position: 'fixed',
+                        bottom: 84, // Above the footer
+                        right: 20,
+                        width: 56,
+                        height: 56,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        zIndex: 99,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => navigate('/teams/new')}
+                />
+            )}
         </div>
     );
 };

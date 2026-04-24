@@ -11,6 +11,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { usePageTitle } from '../../components/Layout/AppLayout';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Sub-components
 import PlayerModal from './components/PlayerModal';
@@ -23,6 +24,7 @@ const TeamDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
     const { setTitle, setBackUrl } = usePageTitle();
+    const { user } = useAuth();
 
     const getPhaseLabel = (phase: string) => {
         if (!phase) return '';
@@ -284,31 +286,33 @@ const TeamDetailPage: React.FC = () => {
                             </Row>
                         </Col>
                     </Row>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                        {isEditing ? (
-                            <Popconfirm
-                                title="Excluir Time"
-                                description="Tem certeza? Todos os dados vinculados serão perdidos."
-                                onConfirm={handleDeleteTeam}
-                                okText="Sim, excluir"
-                                cancelText="Não"
-                                okButtonProps={{ danger: true }}
-                                disabled={submitting}
+                    {user?.role && user.role !== 'USER' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                            {isEditing ? (
+                                <Popconfirm
+                                    title="Excluir Time"
+                                    description="Tem certeza? Todos os dados vinculados serão perdidos."
+                                    onConfirm={handleDeleteTeam}
+                                    okText="Sim, excluir"
+                                    cancelText="Não"
+                                    okButtonProps={{ danger: true }}
+                                    disabled={submitting}
+                                >
+                                    <Button danger type="text" icon={<DeleteOutlined />} disabled={submitting}>Excluir Time</Button>
+                                </Popconfirm>
+                            ) : <div />}
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                icon={<SaveOutlined />}
+                                loading={submitting}
+                                size="large"
+                                style={{ borderRadius: 10, paddingLeft: 30, paddingRight: 30 }}
                             >
-                                <Button danger type="text" icon={<DeleteOutlined />} disabled={submitting}>Excluir Time</Button>
-                            </Popconfirm>
-                        ) : <div />}
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            icon={<SaveOutlined />}
-                            loading={submitting}
-                            size="large"
-                            style={{ borderRadius: 10, paddingLeft: 30, paddingRight: 30 }}
-                        >
-                            Salvar
-                        </Button>
-                    </div>
+                                Salvar
+                            </Button>
+                        </div>
+                    )}
                 </Form>
             </Card>
 

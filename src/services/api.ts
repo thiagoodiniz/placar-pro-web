@@ -5,10 +5,24 @@ const api = axios.create({
     timeout: 30000,
 });
 
-// Interceptor for errors or auth if needed in the future
+// Interceptor to add token to requests
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Interceptor for errors
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
         console.error('API Error:', error.response?.data || error.message);
         return Promise.reject(error);
     }

@@ -4,6 +4,7 @@ import ChampionshipsPage from './pages/Championships';
 import ChampionshipDetailPage from './pages/ChampionshipDetail';
 import TeamsPage from './pages/Teams';
 import TeamDetailPage from './pages/TeamDetail';
+import UsersPage from './pages/Users';
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                     <Route path="/teams" element={<TeamsPage />} />
                     <Route path="/teams/:id" element={<TeamDetailPage />} />
                     <Route path="/teams/new" element={<TeamDetailPage />} />
+                    <Route path="/users" element={<UsersPage />} />
                     <Route path="/" element={<Navigate to="/championships" replace />} />
                 </Routes>
             </AppLayout>
