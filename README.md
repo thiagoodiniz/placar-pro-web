@@ -1,55 +1,64 @@
 # Placar Pro Web ⚽
 
-Interface moderna e responsiva para gestão e visualização de campeonatos esportivos em tempo real.
+Modern and responsive frontend interface for the Placar Pro ecosystem. Built with React, Vite, and Ant Design.
 
-## 💎 Diferenciais
-- **UI Premium**: Design moderno com Ant Design e animações suaves.
-- **Gestão Completa**: Suporte a diversos formatos de torneios (Grupos, Mata-mata, Pontos Corridos).
-- **Mata-mata Inteligente**: Gerenciamento de chaves (Oitavas, Quartas, Semi e Final).
-- **Performance**: Compressão de imagens em tempo real para Base64.
-- **Segurança**: Controle de acesso por perfis (Admin, Manager, User).
+## Features
 
-## 🚀 Tecnologias
-- **React** (v18+)
-- **Vite** (Build tool)
-- **Ant Design** (UI Library)
-- **React Query** (Data Fetching)
-- **PostHog** (Product Analytics)
-- **Sentry** (Error Monitoring)
-- **Google OAuth** (Authentication)
+- **Tournament Dashboard**: Real-time visualization of standings, matches, and top scorers.
+- **Advanced Management**: Intuitive tools for creating groups, shuffling teams, and managing knockout phases.
+- **Smart Image Upload**: Integrated Base64 compression for team logos and player photos to optimize storage and performance.
+- **Role-Based UI**: Dynamic interface that adapts based on user permissions (Admin, Manager, User).
+- **Social Login**: Seamless authentication with Google OAuth.
+- **Analytics**: Product insights powered by PostHog with custom email blocklists for development.
+- **Mobile First**: Fully responsive design optimized for use at the sports field.
 
-## ⚙️ Configuração
+## Tech Stack
 
-### 1. Variáveis de Ambiente
-Crie um arquivo `.env` na raiz:
-```env
-VITE_API_URL=http://localhost:3001
-VITE_GOOGLE_CLIENT_ID="seu_google_client_id"
-VITE_POSTHOG_KEY="sua_chave_posthog"
-VITE_POSTHOG_HOST="https://us.i.posthog.com"
-VITE_POSTHOG_BLOCK_EMAILS="email1@teste.com,email2@teste.com"
-VITE_SENTRY_DSN="sua_sentry_dsn"
-```
+- **Framework**: React 18
+- **Build Tool**: Vite
+- **UI Library**: Ant Design (v5)
+- **State & Data**: React Query & Axios
+- **Analytics**: PostHog
+- **Monitoring**: Sentry
+- **Icons**: Ant Design Icons & Lucide
 
-### 2. Rodando o Projeto
-```bash
-# Instalar dependências
-npm install
+## Getting Started
 
-# Rodar em desenvolvimento
-npm run dev
+### Prerequisites
 
-# Build para produção
-npm run build
-```
+- Node.js (v18+)
+- Backend API running (Placar Pro API)
+- npm or yarn
 
-## 📸 Funcionalidades de Destaque
-- **Upload Inteligente**: As fotos de times e jogadores são redimensionadas e comprimidas no próprio navegador antes de serem enviadas ao servidor, economizando banda e armazenamento.
-- **Modo Somente Leitura**: Visitantes podem acompanhar todos os placares sem necessidade de login, enquanto gestores têm acesso às ferramentas de edição.
-- **Analytics Privado**: Suporte a blocklist de e-mails para evitar que logs de desenvolvedores/admins sujem os dados do PostHog.
+### Installation
 
-## 📱 Responsividade
-A aplicação foi construída com foco mobile-first, garantindo que a gestão do campeonato possa ser feita diretamente na beira do campo via celular.
+1. Clone the repository.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   Create a `.env` file and fill in the required values (VITE_API_URL, GOOGLE_CLIENT_ID, etc.).
+
+### Running the App
+
+- **Development**:
+  ```bash
+  npm run dev
+  ```
+- **Production Build**:
+  ```bash
+  npm run build
+  npm run preview
+  ```
+
+## Project Highlights
+
+### 📸 Base64 Image Compression
+The application automatically resizes and compresses images in the browser before sending them to the API, ensuring a fast and lightweight data flow.
+
+### 🛡️ RBAC Implementation
+UI elements like "Edit", "Delete", and "Manage" buttons are conditionally rendered based on the user's role fetched from the secure AuthContext.
 
 ---
-Placar Pro - Elevando o nível do seu campeonato.
+Placar Pro - Precision in every score.
