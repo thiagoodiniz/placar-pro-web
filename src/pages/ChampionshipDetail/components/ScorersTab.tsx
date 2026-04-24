@@ -36,11 +36,15 @@ const ScorersTab: React.FC<ScorersTabProps> = ({ scorers }) => {
                                 {index + 1}
                             </div>
                             <Avatar
-                                src={<img src={item.photoUrl} alt={item.player} referrerPolicy="no-referrer" />}
+                                src={item.photoUrl || undefined}
                                 size={32}
-                                style={{ backgroundColor: '#f0f0f0' }}
+                                style={{ 
+                                    backgroundColor: token.colorFillSecondary,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    color: token.colorTextSecondary
+                                }}
                             >
-                                {!item.photoUrl && (item.player?.[0]?.toUpperCase() || '?')}
+                                {item.player?.[0]?.toUpperCase() || '?'}
                             </Avatar>
                             <div>
                                 <Text strong style={{ fontSize: 14, display: 'block' }}>{item.player}</Text>
