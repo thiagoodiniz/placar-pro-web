@@ -181,7 +181,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}
                 >
-                    Gerenciar
+                    Ver campeonato
                 </Button>
             </div>
         </Card>
