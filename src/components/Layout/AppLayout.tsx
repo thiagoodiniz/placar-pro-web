@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import { Layout, Avatar, theme, Modal } from 'antd';
+import { Layout, Avatar, theme } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     TrophyOutlined,

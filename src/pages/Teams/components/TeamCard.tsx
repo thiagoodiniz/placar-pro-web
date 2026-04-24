@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card, Typography, Space, Divider, Tag, theme } from 'antd';
-import { TeamOutlined, DesktopOutlined, InfoCircleOutlined, ClockCircleOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { Card, Typography, Space, Divider, theme } from 'antd';
+import { TeamOutlined, DesktopOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 interface TeamCardProps {
     team: any;
