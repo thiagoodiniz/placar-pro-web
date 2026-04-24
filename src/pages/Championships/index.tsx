@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { trackEvent } from '../../services/analytics';
 import {
     Button, Row, Col,
-    Spin, theme, Empty
+    Spin, theme, Empty, message
 } from 'antd';
 import {
     PlusOutlined
@@ -49,6 +49,7 @@ const ChampionshipsPage: React.FC = () => {
     };
 
     const handleSave = async (values: any) => {
+        const hide = message.loading(isEditing ? 'Salvando campeonato...' : 'Criando campeonato...', 0);
         setSubmitting(true);
         try {
             const payload = { ...values, hasGoldSilver: false };
@@ -66,9 +67,13 @@ const ChampionshipsPage: React.FC = () => {
             }
 
             setIsModalOpen(false);
-            fetchData();
+            await fetchData();
+            hide();
+            message.success(isEditing ? 'Campeonato atualizado!' : 'Campeonato criado com sucesso!');
         } catch (error) {
             console.error('Error saving championship', error);
+            hide();
+            message.error('Erro ao salvar campeonato');
         } finally {
             setSubmitting(false);
         }

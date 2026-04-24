@@ -156,7 +156,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                             flexShrink: 0
                                                                         }}>
                                                                             {m.status === 'FINISHED'
-                                                                                ? (m.homePenalties !== undefined && m.awayPenalties !== undefined
+                                                                                ? (m.homePenalties != null && m.awayPenalties != null
                                                                                     ? `${m.homeScore}(${m.homePenalties}) × ${m.awayScore}(${m.awayPenalties})`
                                                                                     : `${m.homeScore} × ${m.awayScore}`)
                                                                                 : 'vs'}

@@ -103,54 +103,8 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onClick }) => {
                     Clique para visualizar o time
                 </div>
 
-                {/* Matches History Section */}
-                <div style={{
-                    background: token.colorFillQuaternary,
-                    borderRadius: 16,
-                    padding: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                    border: `1px solid ${token.colorBorderSecondary}`
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Space size={4}>
-                            <ClockCircleOutlined style={{ fontSize: 11, color: token.colorTextTertiary }} />
-                            <Text type="secondary" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>ÚLTIMO JOGO</Text>
-                        </Space>
-                        {stats.lastMatch ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Tag color={pColor} style={{ margin: 0, borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
-                                    {stats.lastMatch.homeScore} x {stats.lastMatch.awayScore}
-                                </Tag>
-                                <Text style={{ fontSize: 11, maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {stats.lastMatch.opponentName}
-                                </Text>
-                            </div>
-                        ) : (
-                            <Text type="secondary" style={{ fontSize: 11 }}>-</Text>
-                        )}
-                    </div>
-
-                    <Divider style={{ margin: 0, opacity: 0.3 }} />
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Space size={4}>
-                            <ArrowRightOutlined style={{ fontSize: 11, color: token.colorTextTertiary }} />
-                            <Text type="secondary" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>PRÓXIMO</Text>
-                        </Space>
-                        {stats.nextMatch ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Text style={{ fontSize: 11, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    vs {stats.nextMatch.opponentName}
-                                </Text>
-                            </div>
-                        ) : (
-                            <Text type="secondary" style={{ fontSize: 11 }}>Não agendado</Text>
-                        )}
-                    </div>
-                </div>
             </div>
+
         </Card>
     );
 };

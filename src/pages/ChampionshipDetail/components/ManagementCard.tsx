@@ -19,6 +19,7 @@ interface ManagementCardProps {
     onAutoDistributeTeams: () => void;
     onGenerateAllMatches: () => void;
     standings: any[];
+    loading?: boolean;
 }
 
 const ManagementCard: React.FC<ManagementCardProps> = ({
@@ -36,7 +37,8 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     onAutoResults,
     onAutoDistributeTeams,
     onGenerateAllMatches,
-    standings
+    standings,
+    loading
 }) => {
     const teamsPerGroup = Math.ceil((championship.teamCount || 0) / (championship.groupCount || 1));
     const allGroupsComplete = standings.length > 0 && standings.every(g => g.standings?.length === teamsPerGroup);
@@ -47,13 +49,13 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {championship.status === 'DRAFT' && (
                     <Space wrap>
-                        <Button icon={<TeamOutlined />} onClick={onEditTeams}>
+                        <Button icon={<TeamOutlined />} onClick={onEditTeams} disabled={loading}>
                             Editar Times ({championship.teams?.length || 0}/{championship.teamCount})
                         </Button>
                         <Button
                             icon={<TeamOutlined />}
                             onClick={onAutoDistributeTeams}
-                            disabled={championship.teams?.length === 0}
+                            disabled={loading || championship.teams?.length === 0}
                         >
                             Sortear Grupos
                         </Button>
@@ -62,7 +64,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                                 type="primary"
                                 icon={<ThunderboltOutlined />}
                                 onClick={onGenerateAllMatches}
-                                disabled={championship.teams?.length === 0}
+                                disabled={loading || championship.teams?.length === 0}
                             >
                                 Sortear Confrontos
                             </Button>
@@ -73,13 +75,14 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                                     type="primary"
                                     icon={<PlayCircleOutlined />}
                                     onClick={onFinalize}
+                                    disabled={loading}
                                 >
                                     Iniciar Campeonato
                                 </Button>
                             </Tooltip>
                         )}
                         {hasAnyTeamInGroups && (
-                            <Button danger icon={<DeleteOutlined />} onClick={onResetGroups}>
+                            <Button danger icon={<DeleteOutlined />} onClick={onResetGroups} disabled={loading}>
                                 Redefinir Grupos
                             </Button>
                         )}
@@ -91,6 +94,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                         <Button
                             type="default"
                             onClick={onAutoResults}
+                            disabled={loading}
                         >Inserir Placar Automático</Button>
                     </Space>
                 )}
@@ -99,6 +103,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                     <Button
                         type="primary"
                         onClick={onStartNextPhase}
+                        disabled={loading}
                     >
                         Iniciar {nextPhaseName}
                     </Button>
@@ -109,6 +114,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                         type="primary"
                         icon={<TrophyOutlined />}
                         onClick={onFinishChampionship}
+                        disabled={loading}
                     >
                         Finalizar Campeonato
                     </Button>
@@ -120,7 +126,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                     </Tag>
                 )}
 
-                <Button danger icon={<DeleteOutlined />} onClick={onDeleteChampionship}>
+                <Button danger icon={<DeleteOutlined />} onClick={onDeleteChampionship} disabled={loading}>
                     Excluir Campeonato
                 </Button>
             </div>

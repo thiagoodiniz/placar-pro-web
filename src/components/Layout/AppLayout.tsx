@@ -1,14 +1,12 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { Layout, Avatar, theme, Modal } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     TrophyOutlined,
     TeamOutlined,
     UserOutlined,
-    ReloadOutlined,
     ArrowLeftOutlined,
 } from '@ant-design/icons';
-import { mockApi } from '../../services/mockApiService';
 
 const { Content } = Layout;
 
@@ -103,22 +101,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const isActive = (key: string) =>
         location.pathname === key || (key !== '/' && location.pathname.startsWith(key + '/'));
 
-    const handleReset = () => {
-        Modal.confirm({
-            title: 'Reiniciar Dados',
-            content: 'Isso irá apagar todas as suas alterações e voltar para os dados iniciais. Deseja continuar?',
-            okText: 'Sim, Reiniciar',
-            cancelText: 'Cancelar',
-            okButtonProps: { danger: true },
-            onOk: () => {
-                mockApi.resetToSeed();
-                window.location.reload();
-            },
-        });
-    };
+    const contextValue = useMemo(() => ({ 
+        title: pageTitle, 
+        setTitle: setPageTitle, 
+        backUrl, 
+        setBackUrl 
+    }), [pageTitle, backUrl]);
 
     return (
-        <PageTitleContext.Provider value={{ title: pageTitle, setTitle: setPageTitle, backUrl, setBackUrl }}>
+        <PageTitleContext.Provider value={contextValue}>
             <Layout style={{ minHeight: '100vh', background: token.colorBgLayout }}>
 
                 {/* ── Header ── */}
@@ -172,28 +163,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         </span>
                     </div>
 
-                    <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-                        <button
-                            onClick={handleReset}
-                            style={{
-                                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                                padding: '9px 12px', background: 'transparent',
-                                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9,
-                                color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, transition: 'all 0.15s',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)';
-                                e.currentTarget.style.color = '#ef4444';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-                                e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
-                            }}
-                        >
-                            <ReloadOutlined style={{ fontSize: 13 }} />
-                            <span>Reiniciar Dados</span>
-                        </button>
-                    </div>
+                    <div style={{ flex: 1 }} />
 
                     {/* Login Avatar */}
                     <Avatar

@@ -23,9 +23,7 @@ if (storedVersion !== APP_VERSION) {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-        <ConfigProvider theme={themeConfig} locale={ptBR}>
-            <App />
-        </ConfigProvider>
-    </React.StrictMode>,
+    <ConfigProvider theme={themeConfig} locale={ptBR}>
+        <App />
+    </ConfigProvider>,
 )

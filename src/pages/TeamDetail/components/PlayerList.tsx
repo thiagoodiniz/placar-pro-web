@@ -9,13 +9,14 @@ interface PlayerListProps {
     onAdd: () => void;
     onEdit: (player: any) => void;
     onDelete: (playerId: string) => void;
+    loading?: boolean;
 }
 
-const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelete }) => {
+const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelete, loading }) => {
     const { token } = theme.useToken();
 
     return (
-        <div style={{ marginTop: 32 }}>
+        <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Title level={4} style={{ margin: 0 }}>
                     <TeamOutlined /> Jogadores ({players.length})
@@ -25,6 +26,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelet
                     icon={<PlusOutlined />}
                     onClick={onAdd}
                     style={{ borderRadius: 8 }}
+                    disabled={loading}
                 >
                     Adicionar
                 </Button>
@@ -33,7 +35,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelet
             {players.length === 0 ? (
                 <Card style={{ borderRadius: 16, textAlign: 'center', padding: '40px 0', border: '1px dashed #d9d9d9' }}>
                     <Empty description="Nenhum jogador cadastrado" />
-                    <Button type="dashed" icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 16 }}>
+                    <Button type="dashed" icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 16 }} disabled={loading}>
                         Adicionar Primeiro Jogador
                     </Button>
                 </Card>
@@ -47,9 +49,9 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelet
                                 size="small"
                                 style={{ borderRadius: 12 }}
                                 actions={[
-                                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(player)}>Editar</Button>,
-                                    <Popconfirm title="Remover jogador?" onConfirm={() => onDelete(player.id)}>
-                                        <Button type="text" size="small" danger icon={<DeleteOutlined />}>Remover</Button>
+                                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(player)} disabled={loading}>Editar</Button>,
+                                    <Popconfirm title="Remover jogador?" onConfirm={() => onDelete(player.id)} disabled={loading}>
+                                        <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={loading}>Remover</Button>
                                     </Popconfirm>
                                 ]}
                             >

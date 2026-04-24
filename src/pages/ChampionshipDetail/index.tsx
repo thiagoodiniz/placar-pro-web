@@ -54,6 +54,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const [scorers, setScorers] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
     const [players, setPlayers] = useState<any[]>([]);
+    const [submitting, setSubmitting] = useState(false);
 
     // UI State
     const [activeTab, setActiveTab] = useState('standings');
@@ -70,6 +71,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const [selectedMatch, setSelectedMatch] = useState<any>(null);
     const [selectedGroup, setSelectedGroup] = useState<any>(null);
     const [matchGoals, setMatchGoals] = useState<any[]>([]);
+    const initializedRef = React.useRef<string | null>(null);
 
     // Forms
     const [resultForm] = Form.useForm();
@@ -115,25 +117,31 @@ const ChampionshipDetailPage: React.FC = () => {
         } catch (err) { console.error(err); }
     };
 
-    const loadAllData = async (cid: string) => {
-        setLoading(true);
+    const loadAllData = async (cid: string, isInitial = false) => {
+        if (isInitial) setLoading(true);
         await Promise.all([
             fetchChampionship(cid),
             fetchMatches(cid),
             fetchStandings(cid),
             fetchScorers(cid),
-            fetchTeams(),
         ]);
-        setLoading(false);
+        if (isInitial) {
+            await fetchTeams();
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        if (id) loadAllData(id);
-    }, [id]);
+        if (id && (!championship || championship.id !== id)) {
+            loadAllData(id, true);
+        }
+    }, [id, championship?.id]);
 
     useEffect(() => {
-        if (activeTab !== 'matches' || matches.length === 0) return;
-        const phaseOrder = ['GROUP', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+        // Só executa se houver jogos e se ainda não inicializamos para este campeonato específico
+        if (matches.length === 0 || initializedRef.current === id) return;
+
+        const phaseOrder = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
         const existingPhases = [...new Set(matches.map((m: any) => m.phase || 'GROUP'))];
         const sortedPhases = existingPhases.sort((a: any, b: any) => phaseOrder.indexOf(a) - phaseOrder.indexOf(b)) as string[];
 
@@ -142,24 +150,30 @@ const ChampionshipDetailPage: React.FC = () => {
 
         for (const phase of sortedPhases) {
             const pMatches = matches.filter((m: any) => (m.phase || 'GROUP') === phase);
-            const incompleteMatch = pMatches.find((m: any) => m.status !== 'FINISHED');
-            if (incompleteMatch) {
+            
+            // Encontra todos os jogos incompletos da fase
+            const incompleteMatches = pMatches.filter((m: any) => m.status !== 'FINISHED');
+            
+            if (incompleteMatches.length > 0) {
                 targetPhase = phase;
-                targetRound = incompleteMatch.round || 1;
+                // Pegamos a MENOR rodada que ainda tem jogo incompleto
+                const roundsWithIncomplete = incompleteMatches.map((m: any) => m.round || 1);
+                targetRound = Math.min(...roundsWithIncomplete);
                 break;
             } else {
+                // Se todos os jogos da fase acabaram, vamos para a última rodada dessa fase
                 const allRounds = [...new Set(pMatches.map((m: any) => m.round || 1))] as number[];
-                const lastRound = Math.max(...allRounds);
-                const nextPhase = sortedPhases[sortedPhases.indexOf(phase) + 1];
-                if (!nextPhase) {
-                    targetPhase = phase;
-                    targetRound = lastRound;
-                }
+                const lastRound = Math.max(...allRounds, 1);
+                targetPhase = phase;
+                targetRound = lastRound;
+                // O loop continua para ver se há uma próxima fase com jogos
             }
         }
+        
         setActivePhase(targetPhase);
         setCurrentRound(targetRound);
-    }, [activeTab, matches]);
+        initializedRef.current = id || null;
+    }, [matches, id]);
 
     const handleOpenResultModal = async (match: any) => {
         setSelectedMatch(match);
@@ -175,14 +189,12 @@ const ChampionshipDetailPage: React.FC = () => {
         });
 
         try {
-            let currentTeams = teams;
-            if (currentTeams.length === 0) {
-                const res = await api.get('/teams');
-                currentTeams = res.data;
-                setTeams(currentTeams);
-            }
-            const homeTeam = currentTeams.find((t: any) => t.id === match.homeTeamId);
-            const awayTeam = currentTeams.find((t: any) => t.id === match.awayTeamId);
+            const [homeRes, awayRes] = await Promise.all([
+                api.get(`/teams/${match.homeTeamId}`),
+                api.get(`/teams/${match.awayTeamId}`)
+            ]);
+            const homeTeam = homeRes.data;
+            const awayTeam = awayRes.data;
             setPlayers([
                 ...(homeTeam?.players?.map((p: any) => ({ ...p, teamName: homeTeam.name, teamId: homeTeam.id })) || []),
                 ...(awayTeam?.players?.map((p: any) => ({ ...p, teamName: awayTeam.name, teamId: awayTeam.id })) || [])
@@ -192,6 +204,8 @@ const ChampionshipDetailPage: React.FC = () => {
     };
 
     const handleSaveResult = async (values: any) => {
+        setSubmitting(true);
+        const hide = message.loading('Salvando resultado...', 0);
         try {
             await api.patch(`/matches/${selectedMatch.id}`, {
                 ...values,
@@ -208,10 +222,15 @@ const ChampionshipDetailPage: React.FC = () => {
                 trackEvent('match_finished', { match_id: selectedMatch.id, championship_id: id });
             }
             setIsResultModalOpen(false);
-            fetchMatches(id!);
-            fetchStandings(id!);
-            fetchScorers(id!);
-        } catch (err) { console.error(err); }
+            await Promise.all([fetchMatches(id!), fetchStandings(id!), fetchScorers(id!)]);
+            hide();
+        } catch (err) { 
+            console.error(err); 
+            hide();
+            message.error('Erro ao salvar resultado');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleSaveDetails = async (values: any) => {
@@ -235,29 +254,40 @@ const ChampionshipDetailPage: React.FC = () => {
     };
 
     const handleFinalize = async () => {
+        setSubmitting(true);
+        const hide = message.loading('Iniciando campeonato...', 0);
         try {
             await api.post(`/championships/${id}/finalize`);
             trackEvent('championship_started', { championship_id: id });
+            hide();
             message.success('Campeonato iniciado com sucesso!');
             fetchChampionship(id!);
             fetchMatches(id!);
             fetchStandings(id!);
         } catch (err) {
             console.error(err);
+            hide();
             message.error('Erro ao iniciar campeonato');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleFinishChampionship = async () => {
+        setSubmitting(true);
+        const hide = message.loading('Finalizando campeonato...', 0);
         try {
             await api.post(`/championships/${id}/finish`);
             trackEvent('championship_ended', { championship_id: id });
+            hide();
             message.success('Campeonato finalizado com sucesso!');
-            fetchChampionship(id!);
-            fetchMatches(id!);
+            await Promise.all([fetchChampionship(id!), fetchMatches(id!)]);
         } catch (err) {
             console.error(err);
+            hide();
             message.error('Erro ao finalizar campeonato');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -269,42 +299,57 @@ const ChampionshipDetailPage: React.FC = () => {
             cancelText: 'Cancelar',
             okType: 'danger',
             onOk: async () => {
+                setSubmitting(true);
+                const hide = message.loading('Excluindo campeonato...', 0);
                 try {
                     await api.delete(`/championships/${id}`);
                     trackEvent('championship_deleted', { championship_id: id });
+                    hide();
                     message.success('Campeonato excluído com sucesso!');
                     navigate('/championships');
                 } catch (error) {
                     console.error(error);
+                    hide();
                     message.error('Erro ao excluir campeonato');
+                } finally {
+                    setSubmitting(false);
                 }
             }
         });
     };
 
     const handleUpdateConfig = async (values: any) => {
-        try {
-            const structuralFields = ['format', 'teamCount', 'groupCount', 'advancingCount'];
-            const isStructuralChange = structuralFields.some(field => values[field] !== undefined && values[field] !== (championship as any)[field]);
-
-            if (isStructuralChange && matches.length > 0) {
-                Modal.confirm({
-                    title: 'Aviso de Mudança Estrutural',
-                    content: 'Alterar estas configurações irá apagar todos os confrontos já definidos. Deseja continuar?',
-                    onOk: async () => {
-                        await api.patch(`/championships/${id}`, values);
-                        setIsConfigModalOpen(false);
-                        fetchChampionship(id!);
-                        fetchMatches(id!);
-                    }
-                });
-            } else {
+        const structuralFields = ['format', 'teamCount', 'groupCount', 'advancingCount'];
+        const isStructuralChange = structuralFields.some(field => values[field] !== undefined && values[field] !== (championship as any)[field]);
+        
+        const performUpdate = async () => {
+            setSubmitting(true);
+            const hide = message.loading('Salvando configurações...', 0);
+            try {
                 await api.patch(`/championships/${id}`, values);
                 trackEvent('championship_configured', { championship_id: id });
                 setIsConfigModalOpen(false);
-                fetchChampionship(id!);
+                await Promise.all([fetchChampionship(id!), fetchMatches(id!)]);
+                hide();
+                message.success('Configurações salvas!');
+            } catch (err) {
+                console.error(err);
+                hide();
+                message.error('Erro ao salvar configurações');
+            } finally {
+                setSubmitting(false);
             }
-        } catch (err) { console.error(err); }
+        };
+
+        if (isStructuralChange && matches.length > 0) {
+            Modal.confirm({
+                title: 'Aviso de Mudança Estrutural',
+                content: 'Alterar estas configurações irá apagar todos os confrontos já definidos. Deseja continuar?',
+                onOk: performUpdate
+            });
+        } else {
+            performUpdate();
+        }
     };
 
     const handleResetGroups = async () => {
@@ -315,24 +360,31 @@ const ChampionshipDetailPage: React.FC = () => {
             cancelText: 'Cancelar',
             okType: 'danger',
             onOk: async () => {
+                setSubmitting(true);
+                const hide = message.loading('Redefinindo grupos...', 0);
                 try {
                     await api.post(`/championships/${id}/groups/reset`);
-                    fetchStandings(id!);
-                    fetchMatches(id!);
-                    fetchChampionship(id!);
+                    await Promise.all([fetchStandings(id!), fetchMatches(id!), fetchChampionship(id!)]);
+                    hide();
                     message.success('Grupos redefinidos com sucesso!');
                 } catch (error) {
                     console.error(error);
+                    hide();
                     message.error('Erro ao redefinir grupos');
+                } finally {
+                    setSubmitting(false);
                 }
             }
         });
     };
 
     const handleEditTeams = async (values: any) => {
+        setSubmitting(true);
+        const hide = message.loading('Definindo times do campeonato...', 0);
         try {
             const rawTeamIdentifiers = values.teamIds || [];
             if (rawTeamIdentifiers.length > (championship.teamCount || 0)) {
+                hide();
                 message.error(`Limite de times excedido! Máximo de ${championship.teamCount} times permitido.`);
                 return;
             }
@@ -347,47 +399,59 @@ const ChampionshipDetailPage: React.FC = () => {
             }
             await api.post('/teams/championship', { championshipId: id, teamIds: finalTeamIds });
             setIsEditTeamsModalOpen(false);
-            fetchChampionship(id!);
-            fetchTeams();
+            await Promise.all([fetchChampionship(id!), fetchTeams()]);
+            hide();
             message.success('Times atualizados com sucesso!');
         } catch (error) {
             console.error('Error updating teams', error);
+            hide();
             message.error('Erro ao atualizar times');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleUpdateGroup = async (values: any) => {
+        const hide = message.loading('Salvando grupo...', 0);
         try {
             const tc = Number(championship.teamCount) || 0;
             const gc = Number(championship.groupCount) || 1;
             const tpb = Math.ceil(tc / gc);
             if (values.teamIds && values.teamIds.length > tpb) {
+                hide();
                 message.error(`Limite de times por grupo excedido! Máximo de ${tpb} times por grupo.`);
                 return;
             }
             if (!selectedGroup?.id) {
+                hide();
                 message.error('ID do grupo não encontrado. Tente reabrir o modal.');
                 return;
             }
             await api.patch(`/championships/groups/${selectedGroup.id}`, values);
             setIsEditGroupModalOpen(false);
             groupForm.resetFields();
-            fetchStandings(id!);
-            fetchChampionship(id!);
+            await Promise.all([fetchStandings(id!), fetchChampionship(id!)]);
+            hide();
             message.success('Grupo atualizado com sucesso!');
         } catch (error) {
             console.error(error);
+            hide();
             message.error('Erro ao atualizar grupo');
         }
     };
 
     const handleGenerateGroupMatches = async (groupId: string) => {
+        const hide = message.loading('Sorteando confrontos do grupo...', 0);
         try {
             await api.post(`/championships/groups/${groupId}/generate-matches`);
-            fetchMatches(id!);
-            fetchStandings(id!);
-            fetchChampionship(id!);
-        } catch (error) { console.error(error); }
+            await Promise.all([fetchMatches(id!), fetchStandings(id!), fetchChampionship(id!)]);
+            hide();
+            message.success('Confrontos do grupo gerados!');
+        } catch (error) { 
+            console.error(error); 
+            hide();
+            message.error('Erro ao gerar confrontos do grupo');
+        }
     };
 
 
@@ -435,7 +499,11 @@ const ChampionshipDetailPage: React.FC = () => {
         if (championship.format === 'LEAGUE') {
             canFinishChampionship = championship.status !== 'FINISHED' && matches.length > 0 && matches.every(m => m.status === 'FINISHED');
         } else {
-            const currentPhase = matches.length > 0 ? (matches[matches.length - 1].phase || 'GROUP') : 'GROUP';
+            const phaseOrder = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+            const currentPhase = matches.reduce((latest: string, m: any) => {
+                const p = m.phase || 'GROUP';
+                return phaseOrder.indexOf(p) > phaseOrder.indexOf(latest) ? p : latest;
+            }, 'GROUP');
             const phaseMatches = matches.filter(m => m.phase === currentPhase);
             const allPhaseFinished = phaseMatches.length > 0 && phaseMatches.every(m => m.status === 'FINISHED');
 
@@ -516,33 +584,70 @@ const ChampionshipDetailPage: React.FC = () => {
                         canStartNextPhase={canStartNextPhase}
                         nextPhaseName={nextPhaseName}
                         canFinishChampionship={canFinishChampionship}
+                        loading={submitting}
                         onStartNextPhase={async () => {
+                            setSubmitting(true);
+                            const hide = message.loading(`Iniciando ${nextPhaseName}...`, 0);
                             try {
                                 const res = await api.post(`/championships/${id}/next-phase-preview`);
                                 setNextPhasePreview(res.data);
                                 setIsNextPhaseModalOpen(true);
-                            } catch (err) { console.error(err); }
+                                hide();
+                            } catch (err) { 
+                                console.error(err); 
+                                hide();
+                                message.error('Erro ao calcular próxima fase');
+                            } finally {
+                                setSubmitting(false);
+                            }
                         }}
                         onAutoResults={async () => {
+                            setSubmitting(true);
+                            const hide = message.loading('Gerando resultados...', 0);
                             try {
                                 await api.post(`/championships/${id}/auto-results`);
+                                await Promise.all([fetchMatches(id!), fetchScorers(id!), fetchStandings(id!)]);
+                                hide();
                                 message.success('Resultados gerados com sucesso!');
-                                fetchMatches(id!); fetchScorers(id!); fetchStandings(id!);
-                            } catch (err) { console.error(err); }
+                            } catch (err) { 
+                                console.error(err); 
+                                hide();
+                                message.error('Erro ao gerar resultados');
+                            } finally {
+                                setSubmitting(false);
+                            }
                         }}
                         onAutoDistributeTeams={async () => {
+                            setSubmitting(true);
+                            const hide = message.loading('Sorteando grupos...', 0);
                             try {
                                 await api.post(`/championships/${id}/auto-distribute-teams`);
+                                await fetchStandings(id!);
+                                hide();
                                 message.success('Times sorteados nos grupos!');
-                                fetchStandings(id!);
-                            } catch (err) { console.error(err); }
+                            } catch (err) { 
+                                console.error(err); 
+                                hide();
+                                message.error('Erro ao sortear grupos');
+                            } finally {
+                                setSubmitting(false);
+                            }
                         }}
                         onGenerateAllMatches={async () => {
+                            setSubmitting(true);
+                            const hide = message.loading('Sorteando confrontos...', 0);
                             try {
                                 await api.post(`/championships/${id}/generate-all-matches`);
+                                await fetchMatches(id!);
+                                hide();
                                 message.success('Confrontos sorteados!');
-                                fetchMatches(id!);
-                            } catch (err) { console.error(err); }
+                            } catch (err) { 
+                                console.error(err); 
+                                hide();
+                                message.error('Erro ao sortear confrontos');
+                            } finally {
+                                setSubmitting(false);
+                            }
                         }}
                         standings={standings}
                     />
@@ -553,6 +658,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 <GroupsOverview
                     championship={championship}
                     standings={standings}
+                    loading={submitting}
                     onEditGroup={(group) => {
                         setSelectedGroup({ id: group.groupId, name: group.groupName, teams: group.standings });
                         const currentTeamIds = group.standings

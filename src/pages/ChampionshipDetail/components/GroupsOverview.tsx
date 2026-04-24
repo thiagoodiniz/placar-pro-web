@@ -10,12 +10,14 @@ interface GroupsOverviewProps {
     onEditGroup: (group: any) => void;
     onGenerateMatches?: (groupId: string) => void;
     onRemoveTeam?: (teamName: string) => void;
+    loading?: boolean;
 }
 
 const GroupsOverview: React.FC<GroupsOverviewProps> = ({
     championship,
     standings,
     onEditGroup,
+    loading
 }) => {
     const { token } = theme.useToken();
     const teamsPerGroup = Math.ceil((championship.teamCount || 0) / (championship.groupCount || 1));
@@ -56,6 +58,7 @@ const GroupsOverview: React.FC<GroupsOverviewProps> = ({
                                             size="small"
                                             icon={<EditOutlined />}
                                             onClick={() => onEditGroup(group)}
+                                            disabled={loading}
                                         >
                                             Editar
                                         </Button>

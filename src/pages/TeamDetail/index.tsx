@@ -3,10 +3,10 @@ import { trackEvent } from '../../services/analytics';
 import {
     Button, Form, Input, Typography, Card, Row, Col,
     Spin, theme, Popconfirm, Avatar,
-    ColorPicker, message
+    ColorPicker, message, Tabs, List, Tag, Skeleton
 } from 'antd';
 import {
-    TeamOutlined, SaveOutlined, DeleteOutlined
+    TeamOutlined, SaveOutlined, DeleteOutlined, EnvironmentOutlined, CalendarOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
@@ -24,6 +24,19 @@ const TeamDetailPage: React.FC = () => {
     const { token } = theme.useToken();
     const { setTitle, setBackUrl } = usePageTitle();
 
+    const getPhaseLabel = (phase: string) => {
+        if (!phase) return '';
+        switch (phase) {
+            case 'GROUP': return 'Fase de Grupos';
+            case 'ROUND_16': return 'Oitavas de Final';
+            case 'QUARTER': return 'Quartas de Final';
+            case 'SEMI': return 'Semifinal';
+            case 'FINAL': return 'Final';
+            case 'THIRD_PLACE': return 'Disputa 3º Lugar';
+            default: return phase;
+        }
+    };
+
     const isEditing = !!id && id !== 'new';
     const [loading, setLoading] = useState(isEditing);
     const [submitting, setSubmitting] = useState(false);
@@ -32,6 +45,9 @@ const TeamDetailPage: React.FC = () => {
 
     // Player management state
     const [players, setPlayers] = useState<any[]>([]);
+    const [matches, setMatches] = useState<any[]>([]);
+    const [matchesLoading, setMatchesLoading] = useState(false);
+    const [matchesLoaded, setMatchesLoaded] = useState(false);
     const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false);
     const [isPlayerEdit, setIsPlayerEdit] = useState(false);
     const [editingPlayer, setEditingPlayer] = useState<any>(null);
@@ -50,8 +66,8 @@ const TeamDetailPage: React.FC = () => {
     const fetchTeam = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/teams');
-            const foundTeam = Array.isArray(response.data) ? response.data.find((t: any) => t.id === id) : null;
+            const response = await api.get(`/teams/${id}`);
+            const foundTeam = response.data;
             if (foundTeam) {
                 setPlayers(foundTeam.players || []);
                 setTitle(foundTeam.name);
@@ -74,7 +90,24 @@ const TeamDetailPage: React.FC = () => {
         }
     };
 
+    const handleTabChange = async (key: string) => {
+        if (key === '2' && !matchesLoaded && isEditing) {
+            setMatchesLoading(true);
+            try {
+                const response = await api.get(`/teams/${id}/matches`);
+                setMatches(response.data);
+                setMatchesLoaded(true);
+            } catch (error) {
+                console.error('Error fetching matches', error);
+                message.error('Erro ao carregar jogos do time');
+            } finally {
+                setMatchesLoading(false);
+            }
+        }
+    };
+
     const handleSaveTeam = async (values: any) => {
+        const hide = message.loading(isEditing ? 'Atualizando time...' : 'Criando time...', 0);
         setSubmitting(true);
         const payload = {
             ...values,
@@ -86,16 +119,19 @@ const TeamDetailPage: React.FC = () => {
             if (isEditing) {
                 await api.patch(`/teams/${id}`, payload);
                 trackEvent('team_edited', { team_id: id });
+                hide();
                 message.success('Time atualizado com sucesso');
                 setTitle(payload.name);
             } else {
                 const res = await api.post('/teams', payload);
                 trackEvent('team_created', { team_id: res.data.id });
+                hide();
                 message.success('Time criado com sucesso');
                 navigate(`/teams/${res.data.id}`);
             }
         } catch (error) {
             console.error('Error saving team', error);
+            hide();
             message.error('Erro ao salvar time');
         } finally {
             setSubmitting(false);
@@ -103,14 +139,20 @@ const TeamDetailPage: React.FC = () => {
     };
 
     const handleDeleteTeam = async () => {
+        setSubmitting(true);
+        const hide = message.loading('Excluindo time...', 0);
         try {
             await api.delete(`/teams/${id}`);
             trackEvent('team_deleted', { team_id: id });
+            hide();
             message.success('Time excluído com sucesso');
             navigate('/teams');
         } catch (error) {
             console.error('Error deleting team', error);
+            hide();
             message.error('Erro ao excluir time');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -119,6 +161,8 @@ const TeamDetailPage: React.FC = () => {
             message.warning('Salve o time primeiro antes de adicionar jogadores');
             return;
         }
+        setSubmitting(true);
+        const hide = message.loading(isPlayerEdit ? 'Salvando jogador...' : 'Adicionando jogador...', 0);
         try {
             if (isPlayerEdit && editingPlayer) {
                 await api.patch(`/teams/${id}/players/${editingPlayer.id}`, values);
@@ -130,13 +174,17 @@ const TeamDetailPage: React.FC = () => {
             setIsPlayerModalOpen(false);
             playerForm.resetFields();
 
-            const res = await api.get('/teams');
-            const updatedTeam = res.data.find((t: any) => t.id === id);
+            const res = await api.get(`/teams/${id}`);
+            const updatedTeam = res.data;
             setPlayers(updatedTeam?.players || []);
+            hide();
             message.success(isPlayerEdit ? 'Jogador atualizado' : 'Jogador adicionado');
         } catch (error) {
             console.error('Error saving player', error);
+            hide();
             message.error('Erro ao salvar jogador');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -154,15 +202,21 @@ const TeamDetailPage: React.FC = () => {
     };
 
     const handleDeletePlayer = async (playerId: string) => {
+        setSubmitting(true);
+        const hide = message.loading('Removendo jogador...', 0);
         try {
             await api.delete(`/teams/${id}/players/${playerId}`);
-            const res = await api.get('/teams');
-            const updatedTeam = res.data.find((t: any) => t.id === id);
+            const res = await api.get(`/teams/${id}`);
+            const updatedTeam = res.data;
             setPlayers(updatedTeam?.players || []);
+            hide();
             message.success('Jogador removido');
         } catch (error) {
             console.error('Error deleting player', error);
+            hide();
             message.error('Erro ao excluir jogador');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -181,7 +235,7 @@ const TeamDetailPage: React.FC = () => {
                     <Row gutter={[24, 0]}>
                         <Col xs={24} sm={16}>
                             <Form.Item name="name" label="Nome do clube" rules={[{ required: true, message: 'O nome é essencial' }]}>
-                                <Input placeholder="Digite o nome do time" size="large" style={{ borderRadius: 12 }} />
+                                <Input placeholder="Digite o nome do time" size="large" style={{ borderRadius: 12 }} disabled={submitting} />
                             </Form.Item>
                             <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
                                 <Avatar
@@ -199,7 +253,7 @@ const TeamDetailPage: React.FC = () => {
                                 </Avatar>
                                 <div style={{ flex: 1 }}>
                                     <Form.Item name="logoUrl" label="Link para o Escudo (URL)" style={{ margin: 0 }}>
-                                        <Input placeholder="https://exemplo.com/logo.png" style={{ borderRadius: 12 }} />
+                                        <Input placeholder="https://exemplo.com/logo.png" style={{ borderRadius: 12 }} disabled={submitting} />
                                     </Form.Item>
                                 </div>
                             </div>
@@ -213,6 +267,7 @@ const TeamDetailPage: React.FC = () => {
                                             showText
                                             format="hex"
                                             onChange={(color) => teamForm.setFieldsValue({ primaryColor: color.toHexString() })}
+                                            disabled={submitting}
                                         />
                                     </Form.Item>
                                 </Col>
@@ -222,6 +277,7 @@ const TeamDetailPage: React.FC = () => {
                                             showText
                                             format="hex"
                                             onChange={(color) => teamForm.setFieldsValue({ secondaryColor: color.toHexString() })}
+                                            disabled={submitting}
                                         />
                                     </Form.Item>
                                 </Col>
@@ -237,8 +293,9 @@ const TeamDetailPage: React.FC = () => {
                                 okText="Sim, excluir"
                                 cancelText="Não"
                                 okButtonProps={{ danger: true }}
+                                disabled={submitting}
                             >
-                                <Button danger type="text" icon={<DeleteOutlined />}>Excluir Time</Button>
+                                <Button danger type="text" icon={<DeleteOutlined />} disabled={submitting}>Excluir Time</Button>
                             </Popconfirm>
                         ) : <div />}
                         <Button
@@ -256,11 +313,77 @@ const TeamDetailPage: React.FC = () => {
             </Card>
 
             {isEditing && (
-                <PlayerList
-                    players={players}
-                    onAdd={() => openPlayerModal()}
-                    onEdit={openPlayerModal}
-                    onDelete={handleDeletePlayer}
+                <Tabs
+                    defaultActiveKey="1"
+                    onChange={handleTabChange}
+                    items={[
+                        {
+                            key: '1',
+                            label: `Jogadores (${players.length})`,
+                            children: (
+                                <PlayerList
+                                    players={players}
+                                    onAdd={() => openPlayerModal()}
+                                    onEdit={openPlayerModal}
+                                    onDelete={handleDeletePlayer}
+                                    loading={submitting}
+                                />
+                            )
+                        },
+                        {
+                            key: '2',
+                            label: matchesLoaded ? `Jogos (${matches.length})` : 'Jogos',
+                            children: (
+                                <div style={{ marginTop: 24 }}>
+                                    <Skeleton active loading={matchesLoading}>
+                                        <List
+                                            dataSource={matches}
+                                        renderItem={(m: any) => (
+                                            <List.Item>
+                                                <Card size="small" style={{ width: '100%', borderRadius: 12 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <div>
+                                                            <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                                                                {m.championship?.name || 'Sem campeonato'} {m.phase ? `- ${getPhaseLabel(m.phase)}` : ''}
+                                                            </Typography.Text>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                                <Tag color={m.status === 'FINISHED' ? 'green' : 'default'} style={{ margin: 0, padding: '2px 8px', fontSize: 14, fontWeight: 'bold' }}>
+                                                                    {m.status === 'FINISHED' ? (m.isHome ? `${m.homeScore} x ${m.awayScore}` : `${m.awayScore} x ${m.homeScore}`) : 'Agendado'}
+                                                                </Tag>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                                    <Typography.Text type="secondary" style={{ fontSize: 13, fontStyle: 'italic' }}>vs</Typography.Text>
+                                                                    <Avatar src={m.opponentLogo} size={24} style={{ backgroundColor: token.colorFillSecondary }}>
+                                                                        {m.opponentName?.[0]}
+                                                                    </Avatar>
+                                                                    <Typography.Text strong>{m.opponentName}</Typography.Text>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                                            {m.dateTime && (
+                                                                <Typography.Text type="secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                    <CalendarOutlined />
+                                                                    {new Date(m.dateTime).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às {new Date(m.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                                </Typography.Text>
+                                                            )}
+                                                            {m.location && (
+                                                                <Typography.Text type="secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                    <EnvironmentOutlined />
+                                                                    {m.location}
+                                                                </Typography.Text>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            </List.Item>
+                                        )}
+                                        locale={{ emptyText: 'Nenhum jogo encontrado para este time.' }}
+                                    />
+                                    </Skeleton>
+                                </div>
+                            )
+                        }
+                    ]}
                 />
             )}
 

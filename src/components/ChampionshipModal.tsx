@@ -74,13 +74,14 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                     label="Nome do Campeonato"
                     rules={[{ required: true, message: 'Digite o nome do campeonato' }]}
                 >
-                    <Input placeholder="Ex: Copa Interbairros 2024" size="large" style={{ borderRadius: 8 }} />
+                    <Input placeholder="Ex: Copa Interbairros 2024" size="large" style={{ borderRadius: 8 }} disabled={submitting} />
                 </Form.Item>
 
                 <Form.Item name="format" label="Formato da Competição">
                     <Select
                         size="large"
                         style={{ borderRadius: 8 }}
+                        disabled={submitting}
                         options={[
                             { label: 'Grupos + Mata-mata', value: 'GROUPS_KNOCKOUT' },
                             { label: 'Mata-mata Direto (em breve)', value: 'KNOCKOUT', disabled: true },
@@ -108,7 +109,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                                         { type: 'number', min: format === 'KNOCKOUT' ? 2 : 3, message: `Mínimo de ${format === 'KNOCKOUT' ? 2 : 3} times` }
                                     ]}
                                 >
-                                    <InputNumber min={2} style={{ width: '100%', borderRadius: 8 }} size="large" />
+                                    <InputNumber min={2} style={{ width: '100%', borderRadius: 8 }} size="large" disabled={submitting} />
                                 </Form.Item>
 
                                 {format === 'GROUPS_KNOCKOUT' && (
@@ -132,7 +133,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                                                         }),
                                                     ]}
                                                 >
-                                                    <InputNumber min={1} max={teamCount} style={{ width: '100%', borderRadius: 8 }} />
+                                                    <InputNumber min={1} max={teamCount} style={{ width: '100%', borderRadius: 8 }} disabled={submitting} />
                                                 </Form.Item>
                                             </Col>
                                             <Col span={12}>
@@ -154,7 +155,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                                                         }),
                                                     ]}
                                                 >
-                                                    <InputNumber min={1} style={{ width: '100%', borderRadius: 8 }} />
+                                                    <InputNumber min={1} style={{ width: '100%', borderRadius: 8 }} disabled={submitting} />
                                                 </Form.Item>
                                             </Col>
                                         </Row>
@@ -175,7 +176,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
 
                                 {format === 'LEAGUE' && (
                                     <Form.Item name="roundTrip" label="Sistema de Rodadas">
-                                        <Radio.Group style={{ width: '100%' }}>
+                                        <Radio.Group style={{ width: '100%' }} disabled={submitting}>
                                             <Radio.Button value={false} style={{ width: '50%', textAlign: 'center' }}>Turno Único</Radio.Button>
                                             <Radio.Button value={true} style={{ width: '50%', textAlign: 'center' }}>Ida e Volta</Radio.Button>
                                         </Radio.Group>
