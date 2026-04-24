@@ -157,7 +157,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                {user?.role && user.role !== 'USER' ? (
+                {user?.role && user.role !== 'USER' && champ.status === 'DRAFT' ? (
                     <Button
                         size="middle"
                         type="text"

@@ -54,14 +54,16 @@ const GroupsOverview: React.FC<GroupsOverviewProps> = ({
                                 }
                                 extra={
                                     <Space size={4}>
-                                        <Button
-                                            size="small"
-                                            icon={<EditOutlined />}
-                                            onClick={() => onEditGroup(group)}
-                                            disabled={loading}
-                                        >
-                                            Editar
-                                        </Button>
+                                        {championship.status === 'DRAFT' && (
+                                            <Button
+                                                size="small"
+                                                icon={<EditOutlined />}
+                                                onClick={() => onEditGroup(group)}
+                                                disabled={loading}
+                                            >
+                                                Editar
+                                            </Button>
+                                        )}
                                     </Space>
                                 }
                             >

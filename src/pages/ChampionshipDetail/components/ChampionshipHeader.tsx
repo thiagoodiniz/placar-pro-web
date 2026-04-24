@@ -28,7 +28,7 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
             </div>
             <Space direction="vertical" align="end">
                 <Space>
-                    {championship.status !== 'FINISHED' && user?.role && user.role !== 'USER' && (
+                    {championship.status === 'DRAFT' && user?.role && user.role !== 'USER' && (
                         <Button icon={<SettingOutlined />} onClick={onOpenConfig} />
                     )}
                 </Space>
