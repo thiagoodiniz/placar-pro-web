@@ -3,6 +3,7 @@ import { Modal, Form, Input, Button, Divider, message, Tabs } from 'antd';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+import { trackEvent } from '../../services/analytics';
 
 interface LoginModalProps {
     open: boolean;
@@ -18,6 +19,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose }) => {
         try {
             const { data } = await api.post('/auth/login', values);
             login(data.token, data.user);
+            trackEvent('login_email', { user_id: data.user.id });
             message.success('Bem-vindo!');
             onClose();
         } catch (err: any) {
@@ -32,6 +34,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose }) => {
         try {
             const { data } = await api.post('/auth/register', values);
             login(data.token, data.user);
+            trackEvent('register_email', { user_id: data.user.id });
             message.success('Conta criada com sucesso!');
             onClose();
         } catch (err: any) {
@@ -45,6 +48,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ open, onClose }) => {
         try {
             const { data } = await api.post('/auth/google', { token: response.credential });
             login(data.token, data.user);
+            trackEvent('login_google', { user_id: data.user.id });
             message.success('Login com Google realizado!');
             onClose();
         } catch (err) {

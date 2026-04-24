@@ -3,15 +3,16 @@ import { trackEvent } from '../../services/analytics';
 import {
     Button, Form, Input, Typography, Card, Row, Col,
     Spin, theme, Popconfirm, Avatar,
-    ColorPicker, message, Tabs, List, Tag, Skeleton
+    ColorPicker, message, Tabs, List, Tag, Skeleton, Upload, Space
 } from 'antd';
 import {
-    TeamOutlined, SaveOutlined, DeleteOutlined, EnvironmentOutlined, CalendarOutlined
+    TeamOutlined, SaveOutlined, DeleteOutlined, EnvironmentOutlined, CalendarOutlined, UploadOutlined, CloseOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { usePageTitle } from '../../components/Layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
+import { compressImage } from '../../utils/imageUtils';
 
 // Sub-components
 import PlayerModal from './components/PlayerModal';
@@ -254,8 +255,36 @@ const TeamDetailPage: React.FC = () => {
                                     {!logoUrl && <TeamOutlined style={{ fontSize: 24 }} />}
                                 </Avatar>
                                 <div style={{ flex: 1 }}>
-                                    <Form.Item name="logoUrl" label="Link para o Escudo (URL)" style={{ margin: 0 }}>
-                                        <Input placeholder="https://exemplo.com/logo.png" style={{ borderRadius: 12 }} disabled={submitting} />
+                                    <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Escudo do Clube</div>
+                                    <Space size="small">
+                                        <Upload
+                                            showUploadList={false}
+                                            beforeUpload={async (file) => {
+                                                try {
+                                                    const base64 = await compressImage(file);
+                                                    teamForm.setFieldsValue({ logoUrl: base64 });
+                                                    trackEvent('image_uploaded', { type: 'team_logo' });
+                                                } catch (err) {
+                                                    message.error('Erro ao processar imagem');
+                                                }
+                                                return false;
+                                            }}
+                                        >
+                                            <Button icon={<UploadOutlined />} disabled={submitting}>Selecionar Imagem</Button>
+                                        </Upload>
+                                        {logoUrl && (
+                                            <Button 
+                                                icon={<CloseOutlined />} 
+                                                onClick={() => teamForm.setFieldsValue({ logoUrl: '' })}
+                                                disabled={submitting}
+                                                danger
+                                            >
+                                                Remover
+                                            </Button>
+                                        )}
+                                    </Space>
+                                    <Form.Item name="logoUrl" hidden>
+                                        <Input />
                                     </Form.Item>
                                 </div>
                             </div>

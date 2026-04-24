@@ -4,6 +4,7 @@ import { usePageTitle } from '../../components/Layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import api from '../../services/api';
+import { trackEvent } from '../../services/analytics';
 
 const { Text } = Typography;
 
@@ -34,6 +35,7 @@ const UsersPage: React.FC = () => {
     const handleRoleChange = async (userId: string, role: string) => {
         try {
             await api.patch(`/auth/users/${userId}/role`, { role });
+            trackEvent('role_updated', { target_user_id: userId, new_role: role });
             message.success('Permissão atualizada!');
             fetchUsers();
         } catch (err) {
