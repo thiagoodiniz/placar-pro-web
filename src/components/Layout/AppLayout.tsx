@@ -133,6 +133,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         padding: '0 16px',
                         background: '#0f172a',
                         boxShadow: '0 1px 0 rgba(255,255,255,0.06)',
+                        gap: 12,
                     }}
                 >
                     {/* Back button and Page title */}
@@ -169,7 +170,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         </span>
                     </div>
 
-                    <div style={{ flex: 1 }} />
 
                     {/* Login Avatar */}
                     {user ? (

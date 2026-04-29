@@ -240,7 +240,7 @@ const TeamDetailPage: React.FC = () => {
                             <Form.Item name="name" label="Nome do clube" rules={[{ required: true, message: 'O nome é essencial' }]}>
                                 <Input placeholder="Digite o nome do time" size="large" style={{ borderRadius: 12 }} disabled={submitting} />
                             </Form.Item>
-                            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                                 <Avatar
                                     size={64}
                                     src={logoUrl}
@@ -256,7 +256,7 @@ const TeamDetailPage: React.FC = () => {
                                 </Avatar>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Escudo do Clube</div>
-                                    <Space size="small">
+                                    <Space size="small" wrap>
                                         <Upload
                                             showUploadList={false}
                                             beforeUpload={async (file) => {
@@ -316,31 +316,49 @@ const TeamDetailPage: React.FC = () => {
                         </Col>
                     </Row>
                     {user?.role && user.role !== 'USER' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                            {isEditing ? (
-                                <Popconfirm
-                                    title="Excluir Time"
-                                    description="Tem certeza? Todos os dados vinculados serão perdidos."
-                                    onConfirm={handleDeleteTeam}
-                                    okText="Sim, excluir"
-                                    cancelText="Não"
-                                    okButtonProps={{ danger: true }}
-                                    disabled={submitting}
+                        <Row gutter={[16, 16]} justify="space-between" align="middle" style={{ marginTop: 24 }}>
+                            <Col xs={{ span: 24, order: 2 }} sm={{ span: 12, order: 1 }}>
+                                {isEditing && (
+                                    <Popconfirm
+                                        title="Remover Time"
+                                        description="Tem certeza? Todos os dados vinculados serão perdidos."
+                                        onConfirm={handleDeleteTeam}
+                                        okText="Sim, remover"
+                                        cancelText="Não"
+                                        okButtonProps={{ danger: true }}
+                                        disabled={submitting}
+                                    >
+                                        <Button 
+                                            danger 
+                                            type="text" 
+                                            icon={<DeleteOutlined />} 
+                                            disabled={submitting}
+                                            style={{ paddingLeft: 0 }}
+                                        >
+                                            Remover Time
+                                        </Button>
+                                    </Popconfirm>
+                                )}
+                            </Col>
+                            <Col xs={{ span: 24, order: 1 }} sm={{ span: 12, order: 2 }} style={{ textAlign: 'right' }}>
+                                <Button
+                                    type="primary"
+                                    htmlType="submit"
+                                    icon={<SaveOutlined />}
+                                    loading={submitting}
+                                    size="large"
+                                    style={{ 
+                                        borderRadius: 10, 
+                                        paddingLeft: 30, 
+                                        paddingRight: 30,
+                                        width: '100%',
+                                        maxWidth: 200
+                                    }}
                                 >
-                                    <Button danger type="text" icon={<DeleteOutlined />} disabled={submitting}>Excluir Time</Button>
-                                </Popconfirm>
-                            ) : <div />}
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                icon={<SaveOutlined />}
-                                loading={submitting}
-                                size="large"
-                                style={{ borderRadius: 10, paddingLeft: 30, paddingRight: 30 }}
-                            >
-                                Salvar
-                            </Button>
-                        </div>
+                                    Salvar
+                                </Button>
+                            </Col>
+                        </Row>
                     )}
                 </Form>
             </Card>
