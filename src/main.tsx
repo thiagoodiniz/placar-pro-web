@@ -12,6 +12,7 @@ import { initAnalytics } from './services/analytics.ts'
 // Inicializa o Sentry
 Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
+    enableLogs: true,
     integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration(),
