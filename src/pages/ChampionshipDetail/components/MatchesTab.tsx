@@ -142,10 +142,15 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                             <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'TBD'}</Text>
                                                                             <Avatar
                                                                                 size="small"
-                                                                                src={<img src={m.homeTeam?.logoUrl} alt={m.homeTeam?.name} referrerPolicy="no-referrer" />}
-                                                                                style={{ backgroundColor: '#f5f5f5', flexShrink: 0 }}
+                                                                                src={m.homeTeam?.logoUrl ? <img src={m.homeTeam.logoUrl} alt={m.homeTeam.name} referrerPolicy="no-referrer" /> : undefined}
+                                                                                style={{
+                                                                                    backgroundColor: m.homeTeam?.primaryColor || token.colorFillSecondary,
+                                                                                    color: m.homeTeam?.secondaryColor || '#fff',
+                                                                                    flexShrink: 0,
+                                                                                    border: m.homeTeam?.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`
+                                                                                }}
                                                                             >
-                                                                                {!m.homeTeam?.logoUrl && m.homeTeam?.name?.[0].toUpperCase()}
+                                                                                {!m.homeTeam?.logoUrl && (m.homeTeam?.name?.[0]?.toUpperCase() || '?')}
                                                                             </Avatar>
                                                                         </div>
                                                                         <div style={{
@@ -166,10 +171,15 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                         <div style={{ flex: 1, minWidth: 0, textAlign: 'left', paddingLeft: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
                                                                             <Avatar
                                                                                 size="small"
-                                                                                src={<img src={m.awayTeam?.logoUrl} alt={m.awayTeam?.name} referrerPolicy="no-referrer" />}
-                                                                                style={{ backgroundColor: '#f5f5f5', flexShrink: 0 }}
+                                                                                src={m.awayTeam?.logoUrl ? <img src={m.awayTeam.logoUrl} alt={m.awayTeam.name} referrerPolicy="no-referrer" /> : undefined}
+                                                                                style={{
+                                                                                    backgroundColor: m.awayTeam?.primaryColor || token.colorFillSecondary,
+                                                                                    color: m.awayTeam?.secondaryColor || '#fff',
+                                                                                    flexShrink: 0,
+                                                                                    border: m.awayTeam?.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`
+                                                                                }}
                                                                             >
-                                                                                {!m.awayTeam?.logoUrl && m.awayTeam?.name?.[0].toUpperCase()}
+                                                                                {!m.awayTeam?.logoUrl && (m.awayTeam?.name?.[0]?.toUpperCase() || '?')}
                                                                             </Avatar>
                                                                             <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.awayTeam?.name || 'TBD'}</Text>
                                                                         </div>

@@ -22,8 +22,13 @@ const StandingsTab: React.FC<StandingsTabProps> = ({ standings, championship }) 
                 <Space size={8} style={{ width: '100%' }}>
                     <Avatar
                         size="small"
-                        src={<img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" />}
-                        style={{ backgroundColor: '#f0f0f0', flexShrink: 0 }}
+                        src={record.teamLogoUrl ? <img src={record.teamLogoUrl} alt={record.teamName} referrerPolicy="no-referrer" /> : undefined}
+                        style={{
+                            backgroundColor: record.primaryColor || token.colorFillSecondary,
+                            color: record.secondaryColor || '#fff',
+                            flexShrink: 0,
+                            border: record.teamLogoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`
+                        }}
                     >
                         {!record.teamLogoUrl && (record.teamName?.[0]?.toUpperCase() || '?')}
                     </Avatar>

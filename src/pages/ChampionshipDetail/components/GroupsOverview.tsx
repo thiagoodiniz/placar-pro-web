@@ -91,7 +91,13 @@ const GroupsOverview: React.FC<GroupsOverviewProps> = ({
                                                 <Avatar
                                                     src={s.teamLogoUrl}
                                                     size={28}
-                                                    style={{ flexShrink: 0, fontSize: 12 }}
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        fontSize: 12,
+                                                        backgroundColor: s.primaryColor || token.colorPrimary,
+                                                        color: s.secondaryColor || '#fff',
+                                                        border: s.teamLogoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`
+                                                    }}
                                                 >
                                                     {s.teamName?.[0]?.toUpperCase()}
                                                 </Avatar>

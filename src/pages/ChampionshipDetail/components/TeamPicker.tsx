@@ -112,9 +112,16 @@ const TeamPicker: React.FC<TeamPickerProps> = ({ value = [], onChange, teams, ma
                                 <Avatar
                                     src={team.logoUrl}
                                     size={40}
-                                    style={{ marginBottom: 8, border: `1px solid ${token.colorBorderSecondary}` }}
+                                    style={{
+                                        marginBottom: 8,
+                                        border: team.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                                        backgroundColor: team.primaryColor || token.colorFillSecondary,
+                                        color: team.secondaryColor || '#fff',
+                                        fontSize: 18,
+                                        fontWeight: 600
+                                    }}
                                 >
-                                    {team.name[0]}
+                                    {team.name?.[0]?.toUpperCase()}
                                 </Avatar>
                                 <Text strong style={{ fontSize: 11, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {team.name}
