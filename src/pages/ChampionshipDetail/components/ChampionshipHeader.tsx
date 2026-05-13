@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Tag, Space, Button, message } from 'antd';
+import { Typography, Tag, Button, message } from 'antd';
 import { SettingOutlined, ShareAltOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -24,7 +24,7 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
                             championship.format === 'LEAGUE' ? 'Liga (Pontos Corridos)' : 'Mata-mata Direto'}
                     </Text>
                 </div>
-                <Tag 
+                <Tag
                     color={championship.status === 'FINISHED' ? 'gold' : championship.status === 'STARTED' ? 'green' : 'orange'}
                     style={{ margin: 0, flexShrink: 0, marginTop: 4 }}
                 >
@@ -32,11 +32,11 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
                 </Tag>
             </div>
 
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                flexWrap: 'wrap', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
                 gap: 12,
                 paddingTop: 8,
                 borderTop: '1px solid rgba(0,0,0,0.05)'
@@ -49,11 +49,11 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
 
                 <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
                     {(championship.status === 'STARTED' || championship.status === 'FINISHED') && (
-                        <Button 
+                        <Button
                             type="primary"
                             ghost
                             size="middle"
-                            icon={<ShareAltOutlined />} 
+                            icon={<ShareAltOutlined />}
                             onClick={() => {
                                 navigator.clipboard.writeText(window.location.href);
                                 message.success('Link do campeonato copiado!');
@@ -64,8 +64,8 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
                         </Button>
                     )}
                     {championship.status === 'DRAFT' && user?.role && user.role !== 'USER' && (
-                        <Button 
-                            icon={<SettingOutlined />} 
+                        <Button
+                            icon={<SettingOutlined />}
                             onClick={onOpenConfig}
                             style={{ borderRadius: 8 }}
                         >
