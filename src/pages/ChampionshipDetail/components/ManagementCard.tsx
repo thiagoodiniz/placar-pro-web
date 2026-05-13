@@ -128,7 +128,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                     </Tag>
                 )}
 
-                {(championship.status !== 'FINISHED' || user?.role === 'ADMIN') && (
+                {(user?.role === 'ADMIN' || (user?.role === 'MANAGER' && championship.status === 'DRAFT')) && (
                     <Button danger icon={<DeleteOutlined />} onClick={onDeleteChampionship} disabled={loading}>
                         Excluir Campeonato
                     </Button>
