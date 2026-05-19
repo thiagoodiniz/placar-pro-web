@@ -24,11 +24,13 @@ import {
     CalendarOutlined,
     FireOutlined,
     EnvironmentOutlined,
+    EditOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
 import dayjs from 'dayjs';
 import ChampionshipModal from '../../components/ChampionshipModal';
 import { usePageTitle } from '../../components/Layout/AppLayout';
+import { getBracketLabels } from '../../utils/bracketLabels';
 
 // Sub-components
 import ChampionshipHeader from './components/ChampionshipHeader';
@@ -72,6 +74,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isManualMatchModalOpen, setIsManualMatchModalOpen] = useState(false);
     const [isNextPhaseModalOpen, setIsNextPhaseModalOpen] = useState(false);
+    const [isRenameLabelsModalOpen, setIsRenameLabelsModalOpen] = useState(false);
     const [nextPhasePreview, setNextPhasePreview] = useState<any>(null);
     const [selectedMatch, setSelectedMatch] = useState<any>(null);
     const [selectedGroup, setSelectedGroup] = useState<any>(null);
@@ -84,6 +87,7 @@ const ChampionshipDetailPage: React.FC = () => {
     const [manualMatchForm] = Form.useForm();
     const [editTeamsForm] = Form.useForm();
     const [groupForm] = Form.useForm();
+    const [renameLabelsForm] = Form.useForm();
 
     const fetchChampionship = async (cid: string) => {
         try {
@@ -294,6 +298,27 @@ const ChampionshipDetailPage: React.FC = () => {
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleSaveLabels = async (labels: Record<string, string>) => {
+        try {
+            await api.patch(`/championships/${id}`, { bracketLabels: labels });
+            await fetchChampionship(id!);
+            message.success('Rótulos das séries atualizados!');
+        } catch (err) {
+            console.error(err);
+            message.error('Erro ao salvar rótulos');
+        }
+    };
+
+    const handleSaveLabelsFromModal = async (values: any) => {
+        await handleSaveLabels({
+            GOLD: values.gold,
+            SILVER: values.silver,
+            finalLabel: values.finalLabel,
+            thirdPlaceLabel: values.thirdPlaceLabel,
+        });
+        setIsRenameLabelsModalOpen(false);
     };
 
     const handleDeleteChampionship = async () => {
@@ -714,7 +739,7 @@ const ChampionshipDetailPage: React.FC = () => {
                         }}>
                             <TrophyOutlined style={{ fontSize: '20px', color: '#bfbfbf' }} />
                             <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#8c8c8c' }}>
-                                Campeão Série Prata:
+                                {`Campeão ${getBracketLabels(championship).silver}:`}
                             </Text>
                             {silverChampLogo && (
                                 <Avatar src={silverChampLogo} size={28} style={{ border: '1px solid #bfbfbf', background: '#fff' }} />
@@ -810,6 +835,16 @@ const ChampionshipDetailPage: React.FC = () => {
                                     setSubmitting(false);
                                 }
                             }}
+                            onRenameSeries={user?.role === 'ADMIN' ? () => {
+                                const current = getBracketLabels(championship);
+                                renameLabelsForm.setFieldsValue({
+                                    gold: current.gold,
+                                    silver: current.silver,
+                                    finalLabel: current.finalLabel,
+                                    thirdPlaceLabel: current.thirdPlaceLabel,
+                                });
+                                setIsRenameLabelsModalOpen(true);
+                            } : undefined}
                             standings={standings}
                         />
                     </Col>
@@ -1019,6 +1054,7 @@ const ChampionshipDetailPage: React.FC = () => {
                     standings={standings}
                     matches={matches}
                     preview={nextPhasePreview}
+                    onSaveLabels={user?.role === 'ADMIN' ? handleSaveLabels : undefined}
                     onSave={async (matchesToSave) => {
                         try {
                             await api.post(`/championships/${id}/next-phase`, { matches: matchesToSave });
@@ -1036,6 +1072,35 @@ const ChampionshipDetailPage: React.FC = () => {
                     }}
                 />
             )}
+
+            {/* Modal de Renomear Séries (ADMIN, STARTED/FINISHED) */}
+            <Modal
+                title={<><EditOutlined style={{ marginRight: 8 }} />Renomear Séries</>}
+                open={isRenameLabelsModalOpen}
+                onCancel={() => setIsRenameLabelsModalOpen(false)}
+                onOk={() => renameLabelsForm.submit()}
+                okText="Salvar"
+                width={420}
+            >
+                <Form
+                    form={renameLabelsForm}
+                    layout="vertical"
+                    onFinish={handleSaveLabelsFromModal}
+                >
+                    <Form.Item name="gold" label="Nome da Série Principal">
+                        <Input placeholder="Série Ouro" />
+                    </Form.Item>
+                    <Form.Item name="silver" label="Nome da Série Consolação">
+                        <Input placeholder="Série Prata" />
+                    </Form.Item>
+                    <Form.Item name="finalLabel" label="Rótulo da Grande Final">
+                        <Input placeholder="Grande Final" />
+                    </Form.Item>
+                    <Form.Item name="thirdPlaceLabel" label="Rótulo da Disputa de 3º Lugar">
+                        <Input placeholder="Disputa de 3º Lugar" />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };

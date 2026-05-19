@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
-import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface ManagementCardProps {
@@ -19,6 +19,7 @@ interface ManagementCardProps {
     onAutoResults: () => void;
     onAutoDistributeTeams: () => void;
     onGenerateAllMatches: () => void;
+    onRenameSeries?: () => void;
     standings: any[];
     loading?: boolean;
 }
@@ -38,6 +39,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     onAutoResults,
     onAutoDistributeTeams,
     onGenerateAllMatches,
+    onRenameSeries,
     standings,
     loading
 }) => {
@@ -98,7 +100,26 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                             onClick={onAutoResults}
                             disabled={loading}
                         >Inserir Placar Automático</Button>
+                        {onRenameSeries && (
+                            <Button
+                                icon={<EditOutlined />}
+                                onClick={onRenameSeries}
+                                disabled={loading}
+                            >
+                                Renomear Séries
+                            </Button>
+                        )}
                     </Space>
+                )}
+
+                {championship.status === 'FINISHED' && user?.role === 'ADMIN' && onRenameSeries && (
+                    <Button
+                        icon={<EditOutlined />}
+                        onClick={onRenameSeries}
+                        disabled={loading}
+                    >
+                        Renomear Séries
+                    </Button>
                 )}
 
                 {canStartNextPhase && nextPhaseName && championship.status !== 'FINISHED' && (

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Space, Typography, Card, Avatar, message } from 'antd';
-import { SwapOutlined, CloseOutlined, UserOutlined } from '@ant-design/icons';
+import { Modal, Button, Space, Typography, Card, Avatar, message, Input, Collapse } from 'antd';
+import { SwapOutlined, CloseOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
 import { Switch, Tabs } from 'antd';
 import TeamPicker from './TeamPicker';
 import { trackEvent } from '../../../services/analytics';
+import { getBracketLabels, BracketLabels } from '../../../utils/bracketLabels';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Text } = Typography;
 
@@ -19,6 +21,7 @@ interface NextPhaseModalProps {
         previewMatches: any[];
     } | null;
     onSave: (matches: { homeTeamId: string; awayTeamId: string; bracket: 'GOLD' | 'SILVER'; round?: number }[]) => void;
+    onSaveLabels?: (labels: Record<string, string>) => void;
 }
 
 const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
@@ -28,13 +31,25 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
     standings,
     matches,
     preview,
-    onSave
+    onSave,
+    onSaveLabels,
 }) => {
     const [matchups, setMatchups] = useState<{ homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER'; round?: number }[]>([]);
     const [selectingSlot, setSelectingSlot] = useState<{ index: number; side: 'home' | 'away' } | null>(null);
     const [enableSilverBracket, setEnableSilverBracket] = useState(false);
     const [enableThirdPlaceGold, setEnableThirdPlaceGold] = useState(false);
     const [enableThirdPlaceSilver, setEnableThirdPlaceSilver] = useState(false);
+
+    const { user } = useAuth();
+    const baseLabels = getBracketLabels(championship);
+    const [draftLabels, setDraftLabels] = useState<BracketLabels>(baseLabels);
+    const [labelsDirty, setLabelsDirty] = useState(false);
+
+    // Sync draft labels when championship changes
+    useEffect(() => {
+        setDraftLabels(getBracketLabels(championship));
+        setLabelsDirty(false);
+    }, [championship?.bracketLabels]);
 
     const isTransitionFromGroups =
         championship.format === 'GROUPS_KNOCKOUT' &&
@@ -382,7 +397,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
             <Space direction="vertical" style={{ width: '100%' }} size={12}>
                 {preview.nextPhase === 'FINAL' && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: 8, marginBottom: 4 }}>
-                        <Text strong>Habilitar disputa de 3º lugar ({isGold ? 'Série Ouro' : 'Série Prata'})?</Text>
+                        <Text strong>Habilitar {isGold ? draftLabels.thirdPlaceLabel : `Disputa 3 ${draftLabels.silver}`}?</Text>
                         <Switch checked={isThirdPlaceEnabled} onChange={setThirdPlaceEnabled} />
                     </div>
                 )}
@@ -403,7 +418,9 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                                 style={{ fontSize: 11, display: 'block', marginBottom: 8 }}
                             >
                                 {preview.nextPhase === 'FINAL'
-                                    ? (Number(match.round) === 2 ? 'Disputa de 3º Lugar' : 'Grande Final')
+                                    ? (match.bracket === 'SILVER'
+                                        ? (Number(match.round) === 2 ? `Disputa 3 ${draftLabels.silver}` : `Final ${draftLabels.silver}`)
+                                        : (Number(match.round) === 2 ? draftLabels.thirdPlaceLabel : draftLabels.finalLabel))
                                     : `Jogo ${index + 1}`}
                             </Text>
 
@@ -491,7 +508,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                 <Space direction="vertical" style={{ width: '100%' }} size={12}>
                     {isTransitionFromGroups && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: 8 }}>
-                            <Text strong>Habilitar Série Prata (Consolação)?</Text>
+                            <Text strong>Habilitar {draftLabels.silver} (Consolação)?</Text>
                             <Switch checked={enableSilverBracket} onChange={setEnableSilverBracket} />
                         </div>
                     )}
@@ -526,19 +543,113 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                         <Tabs
                             defaultActiveKey="GOLD"
                             items={[
-                                { key: 'GOLD', label: 'Série Ouro', children: renderMatchupsList('GOLD') },
-                                { key: 'SILVER', label: 'Série Prata', children: renderMatchupsList('SILVER') }
+                                { key: 'GOLD', label: draftLabels.gold, children: renderMatchupsList('GOLD') },
+                                { key: 'SILVER', label: draftLabels.silver, children: renderMatchupsList('SILVER') }
                             ]}
                         />
                     ) : (
                         renderMatchupsList('GOLD')
+                    )}
+
+                    {/* Admin-only: Renomear séries */}
+                    {user?.role === 'ADMIN' && onSaveLabels && (
+                        <Collapse
+                            ghost
+                            size="small"
+                            items={[{
+                                key: 'labels',
+                                label: (
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                        <EditOutlined style={{ marginRight: 6 }} />
+                                        Renomear séries
+                                    </Text>
+                                ),
+                                children: (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
+                                        <div>
+                                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Nome da Série Principal (Ouro)</Text>
+                                            <Input
+                                                size="small"
+                                                placeholder="Série Ouro"
+                                                value={draftLabels.gold}
+                                                onChange={e => { setDraftLabels(p => ({ ...p, gold: e.target.value })); setLabelsDirty(true); }}
+                                            />
+                                        </div>
+                                        {enableSilverBracket && (
+                                            <div>
+                                                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Nome da Série Consolação (Prata)</Text>
+                                                <Input
+                                                    size="small"
+                                                    placeholder="Série Prata"
+                                                    value={draftLabels.silver}
+                                                    onChange={e => { setDraftLabels(p => ({ ...p, silver: e.target.value })); setLabelsDirty(true); }}
+                                                />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Rótulo da Grande Final</Text>
+                                            <Input
+                                                size="small"
+                                                placeholder="Grande Final"
+                                                value={draftLabels.finalLabel}
+                                                onChange={e => { setDraftLabels(p => ({ ...p, finalLabel: e.target.value })); setLabelsDirty(true); }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Rótulo da Disputa de 3º Lugar</Text>
+                                            <Input
+                                                size="small"
+                                                placeholder="Disputa de 3º Lugar"
+                                                value={draftLabels.thirdPlaceLabel}
+                                                onChange={e => { setDraftLabels(p => ({ ...p, thirdPlaceLabel: e.target.value })); setLabelsDirty(true); }}
+                                            />
+                                        </div>
+                                        {labelsDirty && (
+                                            <Button
+                                                size="small"
+                                                type="primary"
+                                                onClick={() => {
+                                                    onSaveLabels({
+                                                        GOLD: draftLabels.gold,
+                                                        SILVER: draftLabels.silver,
+                                                        finalLabel: draftLabels.finalLabel,
+                                                        thirdPlaceLabel: draftLabels.thirdPlaceLabel,
+                                                    });
+                                                    setLabelsDirty(false);
+                                                    message.success('Rótulos salvos!');
+                                                }}
+                                            >
+                                                Salvar Rótulos
+                                            </Button>
+                                        )}
+                                    </div>
+                                )
+                            }]}
+                        />
                     )}
                 </Space>
             </Modal>
 
             {/* Team picker sub-modal */}
             <Modal
-                title={`Selecione o time — ${selectingSlot?.side === 'home' ? 'Mandante' : 'Visitante'} · ${preview.nextPhase === 'FINAL' ? (Number(matchups[selectingSlot?.index ?? 0]?.round) === 2 ? 'Disputa de 3º Lugar' : 'Grande Final') : `Jogo ${(selectingSlot?.index ?? 0) + 1}`}`}
+                title={(() => {
+                    const sideText = selectingSlot?.side === 'home' ? 'Mandante' : 'Visitante';
+                    if (!selectingSlot) return 'Selecione o time';
+                    const match = matchups[selectingSlot.index];
+                    let matchLabel = `Jogo ${selectingSlot.index + 1}`;
+                    if (preview.nextPhase === 'FINAL' && match) {
+                        if (match.bracket === 'SILVER') {
+                            matchLabel = Number(match.round) === 2 
+                                ? `Disputa 3 ${draftLabels.silver}` 
+                                : `Final ${draftLabels.silver}`;
+                        } else {
+                            matchLabel = Number(match.round) === 2 
+                                ? draftLabels.thirdPlaceLabel 
+                                : draftLabels.finalLabel;
+                        }
+                    }
+                    return `Selecione o time — ${sideText} · ${matchLabel}`;
+                })()}
                 open={!!selectingSlot}
                 onCancel={() => setSelectingSlot(null)}
                 footer={null}

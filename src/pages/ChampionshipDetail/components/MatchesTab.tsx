@@ -3,6 +3,7 @@ import { Tabs, Button, Empty, Typography, Space, Card, List, Avatar, Divider, th
 import { PlusOutlined, EnvironmentOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getBracketLabels } from '../../../utils/bracketLabels';
 
 const { Text } = Typography;
 
@@ -31,6 +32,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
 }) => {
     const { token } = theme.useToken();
     const { user } = useAuth();
+    const labels = getBracketLabels(championship);
 
     return (
         <div style={{ position: 'relative' }}>
@@ -79,7 +81,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                             const matchesByGroup = roundMatches.reduce((acc: any, m: any) => {
                                 let g = m.groupName || '';
                                 if (phase !== 'GROUP' && m.bracket) {
-                                    g = m.bracket === 'GOLD' ? 'Série Ouro' : 'Série Prata';
+                                    g = m.bracket === 'GOLD' ? labels.gold : labels.silver;
                                 }
                                 if (!acc[g]) acc[g] = [];
                                 acc[g].push(m);
@@ -111,7 +113,15 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                             </div>
                                         )}
 
-                                        {Object.keys(matchesByGroup).sort((a, b) => a.localeCompare(b)).map(gName => (
+                                        {Object.keys(matchesByGroup)
+                                            .sort((a, b) => {
+                                                if (phase !== 'GROUP') {
+                                                    if (a === labels.gold) return -1;
+                                                    if (b === labels.gold) return 1;
+                                                }
+                                                return a.localeCompare(b);
+                                            })
+                                            .map(gName => (
                                             <div key={gName} style={{ marginBottom: 16 }}>
                                                 {gName && (
                                                     <div style={{ paddingLeft: 10, borderLeft: `3px solid ${token.colorPrimary}`, marginBottom: 12 }}>
@@ -141,10 +151,18 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                 <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
                                                                     {m.phase === 'FINAL' && (
                                                                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                                                                            {Number(m.round) === 2 ? (
-                                                                                <Tag color="orange" style={{ fontWeight: 600 }}>Disputa de 3º Lugar</Tag>
+                                                                            {m.bracket === 'SILVER' ? (
+                                                                                Number(m.round) === 2 ? (
+                                                                                    <Tag color="orange" style={{ fontWeight: 600 }}>{`Disputa 3 ${labels.silver}`}</Tag>
+                                                                                ) : (
+                                                                                    <Tag color="gold" style={{ fontWeight: 600 }}>{`Final ${labels.silver}`}</Tag>
+                                                                                )
                                                                             ) : (
-                                                                                <Tag color="gold" style={{ fontWeight: 600 }}>Grande Final</Tag>
+                                                                                Number(m.round) === 2 ? (
+                                                                                    <Tag color="orange" style={{ fontWeight: 600 }}>{labels.thirdPlaceLabel}</Tag>
+                                                                                ) : (
+                                                                                    <Tag color="gold" style={{ fontWeight: 600 }}>{labels.finalLabel}</Tag>
+                                                                                )
                                                                             )}
                                                                         </div>
                                                                     )}
