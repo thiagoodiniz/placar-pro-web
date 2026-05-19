@@ -16,6 +16,8 @@ import {
     Spin,
     theme,
     Empty,
+    Avatar,
+    Card,
 } from 'antd';
 import {
     TrophyOutlined,
@@ -538,35 +540,190 @@ const ChampionshipDetailPage: React.FC = () => {
         }
     }
 
-    // Determine champion
-    let championTeam: any = null;
-    if (championship?.status === 'FINISHED') {
+    // Determine champion and silver champion
+    let championName = championship?.champion;
+    let silverChampionName = championship?.silverChampion;
+
+    if (championship?.status === 'FINISHED' && !championName) {
         if (championship.format === 'LEAGUE') {
             const table = standings[0]?.standings;
-            if (table?.length > 0) championTeam = table[0];
+            if (table?.length > 0) championName = table[0].teamName || table[0].name;
         } else {
             const finalMatches = matches.filter(m => m.phase === 'FINAL');
-            if (finalMatches.length > 0 && finalMatches[0].status === 'FINISHED') {
-                const m = finalMatches[0];
-                championTeam = m.homeScore > m.awayScore ? { teamName: m.homeTeam?.name } : { teamName: m.awayTeam?.name };
+            
+            const goldFinal = finalMatches.find(m => (m.bracket || 'GOLD') === 'GOLD');
+            const targetFinal = goldFinal || finalMatches[0];
+            if (targetFinal && targetFinal.status === 'FINISHED') {
+                const hScore = targetFinal.homeScore ?? 0;
+                const aScore = targetFinal.awayScore ?? 0;
+                if (hScore > aScore) {
+                    championName = targetFinal.homeTeam?.name;
+                } else if (aScore > hScore) {
+                    championName = targetFinal.awayTeam?.name;
+                } else {
+                    const hPen = targetFinal.homePenalties ?? 0;
+                    const aPen = targetFinal.awayPenalties ?? 0;
+                    championName = hPen >= aPen ? targetFinal.homeTeam?.name : targetFinal.awayTeam?.name;
+                }
+            }
+
+            const silverFinal = finalMatches.find(m => m.bracket === 'SILVER');
+            if (silverFinal && silverFinal.status === 'FINISHED') {
+                const hScore = silverFinal.homeScore ?? 0;
+                const aScore = silverFinal.awayScore ?? 0;
+                if (hScore > aScore) {
+                    silverChampionName = silverFinal.homeTeam?.name;
+                } else if (aScore > hScore) {
+                    silverChampionName = silverFinal.awayTeam?.name;
+                } else {
+                    const hPen = silverFinal.homePenalties ?? 0;
+                    const aPen = silverFinal.awayPenalties ?? 0;
+                    silverChampionName = hPen >= aPen ? silverFinal.homeTeam?.name : silverFinal.awayTeam?.name;
+                }
             }
         }
     }
+
+    // Determine runner-up (vice) and 3rd place
+    let viceName = '';
+    let thirdPlaceName = '';
+
+    if (championship?.status === 'FINISHED') {
+        if (championship.format === 'LEAGUE') {
+            const table = standings[0]?.standings;
+            if (table?.length > 1) viceName = table[1].teamName || table[1].name;
+            if (table?.length > 2) thirdPlaceName = table[2].teamName || table[2].name;
+        } else {
+            const finalMatches = matches.filter(m => m.phase === 'FINAL');
+            const goldFinal = finalMatches.find(m => (m.bracket || 'GOLD') === 'GOLD' && (m.round || 1) === 1);
+            if (goldFinal && goldFinal.status === 'FINISHED') {
+                viceName = goldFinal.homeTeam?.name === championName ? goldFinal.awayTeam?.name : goldFinal.homeTeam?.name;
+            }
+
+            const thirdFinal = finalMatches.find(m => (m.bracket || 'GOLD') === 'GOLD' && m.round === 2);
+            if (thirdFinal && thirdFinal.status === 'FINISHED') {
+                const hScore = thirdFinal.homeScore ?? 0;
+                const aScore = thirdFinal.awayScore ?? 0;
+                if (hScore > aScore) {
+                    thirdPlaceName = thirdFinal.homeTeam?.name;
+                } else if (aScore > hScore) {
+                    thirdPlaceName = thirdFinal.awayTeam?.name;
+                } else {
+                    const hPen = thirdFinal.homePenalties ?? 0;
+                    const aPen = thirdFinal.awayPenalties ?? 0;
+                    thirdPlaceName = hPen >= aPen ? thirdFinal.homeTeam?.name : thirdFinal.awayTeam?.name;
+                }
+            }
+        }
+    }
+
+    const championTeam = championship?.teams?.find((t: any) => t.team?.name === championName);
+    const championLogo = championTeam?.team?.logoUrl;
+
+    const viceTeam = championship?.teams?.find((t: any) => t.team?.name === viceName);
+    const viceLogo = viceTeam?.team?.logoUrl;
+
+    const thirdPlaceTeam = championship?.teams?.find((t: any) => t.team?.name === thirdPlaceName);
+    const thirdPlaceLogo = thirdPlaceTeam?.team?.logoUrl;
+
+    const silverChampTeam = championship?.teams?.find((t: any) => t.team?.name === silverChampionName);
+    const silverChampLogo = silverChampTeam?.team?.logoUrl;
 
     return (
         <div style={{ paddingBottom: '24px' }}>
             <ChampionshipHeader championship={championship} onOpenConfig={() => setIsConfigModalOpen(true)} />
 
-            {championTeam && (
-                <div style={{
-                    marginBottom: 24, textAlign: 'center', padding: '24px 20px',
-                    background: 'linear-gradient(135deg, rgba(250,219,20,0.12) 0%, rgba(250,219,20,0.06) 100%)',
-                    borderRadius: token.borderRadiusLG,
-                    border: '1px solid rgba(250,219,20,0.35)',
-                }}>
-                    <TrophyOutlined style={{ fontSize: '36px', color: '#fadb14', marginBottom: 8, display: 'block' }} />
-                    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, display: 'block', marginBottom: 4 }}>Campeão</Text>
-                    <Title level={2} style={{ margin: 0, color: '#b8960c' }}>{championTeam.teamName || championTeam.name}</Title>
+            {championName && (
+                <div>
+                    {/* CHAMPION */}
+                    <div style={{
+                        marginBottom: 16, textAlign: 'center', padding: '24px 20px',
+                        background: 'linear-gradient(135deg, rgba(250,219,20,0.12) 0%, rgba(250,219,20,0.06) 100%)',
+                        borderRadius: token.borderRadiusLG,
+                        border: '1px solid rgba(250,219,20,0.35)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(250,219,20,0.08)'
+                    }}>
+                        <TrophyOutlined style={{ fontSize: '38px', color: '#fadb14', marginBottom: 8, display: 'block' }} />
+                        <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, display: 'block', marginBottom: 6, color: '#b8960c' }}>
+                            Campeão
+                        </Text>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {championLogo && (
+                                <Avatar src={championLogo} size={40} style={{ border: '2px solid #fadb14', background: '#fff' }} />
+                            )}
+                            <Title level={2} style={{ margin: 0, color: '#b8960c', fontWeight: 800 }}>
+                                {championName}
+                            </Title>
+                        </div>
+                    </div>
+
+                    {/* VICE AND 3RD PLACE */}
+                    {(viceName || thirdPlaceName) && (
+                        <Row gutter={16} style={{ marginBottom: 24 }}>
+                            {viceName && (
+                                <Col span={thirdPlaceName ? 12 : 24}>
+                                    <Card size="small" style={{
+                                        borderRadius: token.borderRadiusLG,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
+                                        background: token.colorFillAlter,
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '4px 0' }}>
+                                            <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Vice:</Text>
+                                            {viceLogo && <Avatar src={viceLogo} size={24} style={{ background: '#fff', border: `1px solid ${token.colorBorderSecondary}` }} />}
+                                            <Text strong style={{ fontSize: 14 }}>{viceName}</Text>
+                                        </div>
+                                    </Card>
+                                </Col>
+                            )}
+                            {thirdPlaceName && (
+                                <Col span={viceName ? 12 : 24}>
+                                    <Card size="small" style={{
+                                        borderRadius: token.borderRadiusLG,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
+                                        background: token.colorFillAlter,
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '4px 0' }}>
+                                            <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>3º Lugar:</Text>
+                                            {thirdPlaceLogo && <Avatar src={thirdPlaceLogo} size={24} style={{ background: '#fff', border: `1px solid ${token.colorBorderSecondary}` }} />}
+                                            <Text strong style={{ fontSize: 14 }}>{thirdPlaceName}</Text>
+                                        </div>
+                                    </Card>
+                                </Col>
+                            )}
+                        </Row>
+                    )}
+
+                    {/* SILVER CHAMPION */}
+                    {silverChampionName && (
+                        <div style={{
+                            marginBottom: 24, padding: '14px 20px',
+                            background: 'linear-gradient(135deg, rgba(140,140,140,0.08) 0%, rgba(140,140,140,0.04) 100%)',
+                            borderRadius: token.borderRadiusLG,
+                            border: '1px solid rgba(140,140,140,0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 12,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+                        }}>
+                            <TrophyOutlined style={{ fontSize: '20px', color: '#bfbfbf' }} />
+                            <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#8c8c8c' }}>
+                                Campeão Série Prata:
+                            </Text>
+                            {silverChampLogo && (
+                                <Avatar src={silverChampLogo} size={28} style={{ border: '1px solid #bfbfbf', background: '#fff' }} />
+                            )}
+                            <Text strong style={{ fontSize: 14, color: '#595959' }}>
+                                {silverChampionName}
+                            </Text>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -659,7 +816,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 </Row>
             )}
 
-            {championship.status === 'DRAFT' && championship.format === 'GROUPS_KNOCKOUT' && standings.length > 0 && (
+            {championship.status === 'DRAFT' && championship.format === 'GROUPS_KNOCKOUT' && standings.length > 0 && championship.teams && championship.teams.length > 0 && (
                 <GroupsOverview
                     championship={championship}
                     standings={standings}
@@ -686,47 +843,49 @@ const ChampionshipDetailPage: React.FC = () => {
                 />
             )}
 
-            <Tabs
-                activeKey={activeTab}
-                onChange={(key) => {
-                    setActiveTab(key);
-                    if (key === 'scorers') trackEvent('viewed_scorers_tab', { championship_id: id });
-                    if (key === 'standings') trackEvent('viewed_standings_tab', { championship_id: id });
-                }}
-                items={[
-                    {
-                        key: 'standings',
-                        label: <span><TrophyOutlined /> Classificação</span>,
-                        children: <StandingsTab standings={standings} championship={championship} />
-                    },
-                    {
-                        key: 'matches',
-                        label: <span><CalendarOutlined /> Jogos</span>,
-                        children: (
-                            <MatchesTab
-                                groupedMatches={groupedMatches}
-                                activePhase={groupedMatches[activePhase] ? activePhase : Object.keys(groupedMatches)[0]}
-                                setActivePhase={setActivePhase}
-                                currentRound={currentRound}
-                                setCurrentRound={setCurrentRound}
-                                championship={championship}
-                                onOpenResultModal={handleOpenResultModal}
-                                onOpenDetailsModal={(m) => {
-                                    setSelectedMatch(m);
-                                    detailsForm.setFieldsValue({ location: m.location, dateTime: m.dateTime ? dayjs(m.dateTime) : null });
-                                    setIsDetailsModalOpen(true);
-                                }}
-                                onOpenManualMatchModal={() => setIsManualMatchModalOpen(true)}
-                            />
-                        )
-                    },
-                    {
-                        key: 'scorers',
-                        label: <span><FireOutlined /> Artilharia</span>,
-                        children: <ScorersTab scorers={scorers} />
-                    }
-                ]}
-            />
+            {championship.teams && championship.teams.length > 0 && (
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={(key) => {
+                        setActiveTab(key);
+                        if (key === 'scorers') trackEvent('viewed_scorers_tab', { championship_id: id });
+                        if (key === 'standings') trackEvent('viewed_standings_tab', { championship_id: id });
+                    }}
+                    items={[
+                        {
+                            key: 'standings',
+                            label: <span><TrophyOutlined /> Classificação</span>,
+                            children: <StandingsTab standings={standings} championship={championship} />
+                        },
+                        ...(matches.length > 0 ? [{
+                            key: 'matches',
+                            label: <span><CalendarOutlined /> Jogos</span>,
+                            children: (
+                                <MatchesTab
+                                    groupedMatches={groupedMatches}
+                                    activePhase={groupedMatches[activePhase] ? activePhase : Object.keys(groupedMatches)[0]}
+                                    setActivePhase={setActivePhase}
+                                    currentRound={currentRound}
+                                    setCurrentRound={setCurrentRound}
+                                    championship={championship}
+                                    onOpenResultModal={handleOpenResultModal}
+                                    onOpenDetailsModal={(m: any) => {
+                                        setSelectedMatch(m);
+                                        detailsForm.setFieldsValue({ location: m.location, dateTime: m.dateTime ? dayjs(m.dateTime) : null });
+                                        setIsDetailsModalOpen(true);
+                                    }}
+                                    onOpenManualMatchModal={() => setIsManualMatchModalOpen(true)}
+                                />
+                            )
+                        }] : []),
+                        ...(championship.status !== 'DRAFT' ? [{
+                            key: 'scorers',
+                            label: <span><FireOutlined /> Artilharia</span>,
+                            children: <ScorersTab scorers={scorers} />
+                        }] : [])
+                    ]}
+                />
+            )}
 
             <MatchResultModal
                 open={isResultModalOpen}
@@ -858,6 +1017,7 @@ const ChampionshipDetailPage: React.FC = () => {
                     onClose={() => setIsNextPhaseModalOpen(false)}
                     championship={championship}
                     standings={standings}
+                    matches={matches}
                     preview={nextPhasePreview}
                     onSave={async (matchesToSave) => {
                         try {

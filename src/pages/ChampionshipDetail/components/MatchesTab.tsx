@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, Button, Empty, Typography, Space, Card, List, Avatar, Divider, theme } from 'antd';
+import { Tabs, Button, Empty, Typography, Space, Card, List, Avatar, Divider, theme, Tag } from 'antd';
 import { PlusOutlined, EnvironmentOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -72,7 +72,9 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
 
                             const rounds = Array.from(new Set(phaseMatches.map((m: any) => m.round || 1))).sort((a: any, b: any) => a - b) as number[];
                             const activeRound = rounds.includes(currentRound) ? currentRound : (rounds[0] || 1);
-                            const roundMatches = phaseMatches.filter((m: any) => (m.round || 1) === activeRound);
+                            const roundMatches = phase === 'GROUP'
+                                ? phaseMatches.filter((m: any) => (m.round || 1) === activeRound)
+                                : phaseMatches;
 
                             const matchesByGroup = roundMatches.reduce((acc: any, m: any) => {
                                 let g = m.groupName || '';
@@ -137,6 +139,15 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                         return (
                                                             <List.Item style={{ border: 'none', padding: '0 0 12px 0' }}>
                                                                 <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
+                                                                    {m.phase === 'FINAL' && (
+                                                                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                                                                            {Number(m.round) === 2 ? (
+                                                                                <Tag color="orange" style={{ fontWeight: 600 }}>Disputa de 3º Lugar</Tag>
+                                                                            ) : (
+                                                                                <Tag color="gold" style={{ fontWeight: 600 }}>Grande Final</Tag>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (homeScorers.length > 0 || awayScorers.length > 0) ? 4 : 10 }}>
                                                                         <div style={{ flex: 1, minWidth: 0, textAlign: 'right', paddingRight: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
                                                                             <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'TBD'}</Text>
