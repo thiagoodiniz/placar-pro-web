@@ -16,6 +16,7 @@ interface MatchesTabProps {
     championship: any;
     onOpenEditModal: (match: any) => void;
     onOpenManualMatchModal: () => void;
+    loadingMatchId?: string | null;
 }
 
 const MatchesTab: React.FC<MatchesTabProps> = ({
@@ -26,7 +27,8 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
     setCurrentRound,
     championship,
     onOpenEditModal,
-    onOpenManualMatchModal
+    onOpenManualMatchModal,
+    loadingMatchId,
 }) => {
     const { token } = theme.useToken();
     const { user } = useAuth();
@@ -245,6 +247,8 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                                     type="primary"
                                                                                     icon={<EditOutlined />}
                                                                                     onClick={() => onOpenEditModal(m)}
+                                                                                    loading={loadingMatchId === m.id}
+                                                                                    disabled={loadingMatchId !== null && loadingMatchId !== m.id}
                                                                                 >Editar Jogo</Button>
                                                                             </Space>
                                                                         )}

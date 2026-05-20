@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Row, Col, Typography, InputNumber, Divider, Select, List, Button, theme, Tabs, Input, DatePicker, Checkbox, Collapse, message } from 'antd';
-import { DeleteOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
+import { Modal, Form, Row, Col, Typography, InputNumber, Divider, Select, List, Button, theme, Tabs, Input, DatePicker, Checkbox, Collapse, message, Spin } from 'antd';
+import { DeleteOutlined, EnvironmentOutlined, PlusOutlined, LoadingOutlined } from '@ant-design/icons';
 import PlayerModal from '../../TeamDetail/components/PlayerModal';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
@@ -19,6 +19,7 @@ interface MatchEditModalProps {
     onFinish: (values: any) => void;
     confirmLoading?: boolean;
     onRefetchPlayers?: () => Promise<void>;
+    loadingPlayers?: boolean;
 }
 
 const MatchResultModal: React.FC<MatchEditModalProps> = ({
@@ -32,7 +33,8 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
     onRemoveGoal,
     onFinish,
     confirmLoading,
-    onRefetchPlayers
+    onRefetchPlayers,
+    loadingPlayers = false,
 }) => {
     const { token } = theme.useToken();
     const { user } = useAuth();
@@ -396,32 +398,40 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                 okText="Salvar"
                 cancelText="Cancelar"
                 confirmLoading={confirmLoading}
+                okButtonProps={{ disabled: loadingPlayers || confirmLoading }}
                 cancelButtonProps={{ disabled: confirmLoading }}
                 closable={!confirmLoading}
                 maskClosable={!confirmLoading}
                 keyboard={!confirmLoading}
             >
                 <Form form={form} layout="vertical" onFinish={handleFormFinish}>
-                    <Tabs 
-                        defaultActiveKey="score"
-                        items={[
-                            {
-                                key: 'score',
-                                label: 'Placar e Gols',
-                                children: renderScoreTab()
-                            },
-                            {
-                                key: 'presence',
-                                label: 'Lista de Presença',
-                                children: renderPresenceTab()
-                            },
-                            {
-                                key: 'details',
-                                label: 'Data e Local',
-                                children: renderDetailsTab()
-                            }
-                        ]}
-                    />
+                    {loadingPlayers ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 16 }}>
+                            <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+                            <span style={{ color: 'var(--ant-color-text-secondary)', fontSize: 14 }}>Carregando dados do jogo...</span>
+                        </div>
+                    ) : (
+                        <Tabs 
+                            defaultActiveKey="score"
+                            items={[
+                                {
+                                    key: 'score',
+                                    label: 'Placar e Gols',
+                                    children: renderScoreTab()
+                                },
+                                {
+                                    key: 'presence',
+                                    label: 'Lista de Presença',
+                                    children: renderPresenceTab()
+                                },
+                                {
+                                    key: 'details',
+                                    label: 'Data e Local',
+                                    children: renderDetailsTab()
+                                }
+                            ]}
+                        />
+                    )}
                 </Form>
             </Modal>
 

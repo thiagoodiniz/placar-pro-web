@@ -60,6 +60,8 @@ const ChampionshipDetailPage: React.FC = () => {
     const [teams, setTeams] = useState<any[]>([]);
     const [players, setPlayers] = useState<any[]>([]);
     const [submitting, setSubmitting] = useState(false);
+    const [loadingMatchId, setLoadingMatchId] = useState<string | null>(null);
+    const [loadingPlayers, setLoadingPlayers] = useState(false);
 
     // UI State
     const [activeTab, setActiveTab] = useState('standings');
@@ -181,7 +183,9 @@ const ChampionshipDetailPage: React.FC = () => {
     }, [matches, id]);
 
     const handleOpenResultModal = async (match: any) => {
+        setLoadingMatchId(match.id);
         setSelectedMatch(match);
+        setPlayers([]);
         setMatchGoals((match.goals || []).map((g: any) => ({
             ...g,
             id: g.id || Math.random().toString(36).substr(2, 9)
@@ -195,6 +199,11 @@ const ChampionshipDetailPage: React.FC = () => {
             dateTime: match.dateTime ? dayjs(match.dateTime) : undefined
         });
 
+        // Abre o modal imediatamente para dar feedback visual ao usuário
+        setIsResultModalOpen(true);
+        setLoadingMatchId(null);
+        setLoadingPlayers(true);
+
         try {
             const [homeRes, awayRes] = await Promise.all([
                 api.get(`/teams/${match.homeTeamId}`),
@@ -207,7 +216,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 ...(awayTeam?.players?.map((p: any) => ({ ...p, teamName: awayTeam.name, teamId: awayTeam.id })) || [])
             ]);
         } catch (err) { console.error(err); }
-        setIsResultModalOpen(true);
+        finally { setLoadingPlayers(false); }
     };
 
     const refetchPlayersForMatch = async () => {
@@ -1006,6 +1015,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                     championship={championship}
                                     onOpenEditModal={handleOpenResultModal}
                                     onOpenManualMatchModal={() => setIsManualMatchModalOpen(true)}
+                                    loadingMatchId={loadingMatchId}
                                 />
                             )
                         }] : []),
@@ -1030,6 +1040,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 onFinish={handleSaveResult}
                 confirmLoading={submitting}
                 onRefetchPlayers={refetchPlayersForMatch}
+                loadingPlayers={loadingPlayers}
             />
 
             <Modal
