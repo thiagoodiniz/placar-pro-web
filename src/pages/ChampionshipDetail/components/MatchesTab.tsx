@@ -14,8 +14,7 @@ interface MatchesTabProps {
     currentRound: number;
     setCurrentRound: (round: number) => void;
     championship: any;
-    onOpenResultModal: (match: any) => void;
-    onOpenDetailsModal: (match: any) => void;
+    onOpenEditModal: (match: any) => void;
     onOpenManualMatchModal: () => void;
 }
 
@@ -26,13 +25,17 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
     currentRound,
     setCurrentRound,
     championship,
-    onOpenResultModal,
-    onOpenDetailsModal,
+    onOpenEditModal,
     onOpenManualMatchModal
 }) => {
     const { token } = theme.useToken();
     const { user } = useAuth();
     const labels = getBracketLabels(championship);
+
+    const phaseOrder = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+    const currentPhase = Object.keys(groupedMatches).reduce((latest: string, p: string) => {
+        return phaseOrder.indexOf(p) > phaseOrder.indexOf(latest) ? p : latest;
+    }, 'GROUP');
 
     return (
         <div style={{ position: 'relative' }}>
@@ -168,7 +171,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                     )}
                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (homeScorers.length > 0 || awayScorers.length > 0) ? 4 : 10 }}>
                                                                         <div style={{ flex: 1, minWidth: 0, textAlign: 'right', paddingRight: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'TBD'}</Text>
+                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'A definir'}</Text>
                                                                             <Avatar
                                                                                 size="small"
                                                                                 src={m.homeTeam?.logoUrl ? <img src={m.homeTeam.logoUrl} alt={m.homeTeam.name} referrerPolicy="no-referrer" /> : undefined}
@@ -210,7 +213,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                             >
                                                                                 {!m.awayTeam?.logoUrl && (m.awayTeam?.name?.[0]?.toUpperCase() || '?')}
                                                                             </Avatar>
-                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.awayTeam?.name || 'TBD'}</Text>
+                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.awayTeam?.name || 'A definir'}</Text>
                                                                         </div>
                                                                     </div>
 
@@ -232,18 +235,17 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                         flexWrap: 'wrap', gap: '6px 0',
                                                                     }}>
                                                                         <Space split={<Divider type="vertical" />}>
-                                                                            <span><EnvironmentOutlined /> {m.location || 'Local TBD'}</span>
-                                                                            <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora TBD'}</span>
+                                                                            <span><EnvironmentOutlined /> {m.location || 'Local a definir'}</span>
+                                                                            <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora a definir'}</span>
                                                                         </Space>
-                                                                        {championship.status !== 'FINISHED' && user?.role && user.role !== 'USER' && (
+                                                                        {championship.status === 'STARTED' && m.phase === currentPhase && user?.role && user.role !== 'USER' && (
                                                                             <Space>
-                                                                                <Button size="small" icon={<EditOutlined />} onClick={() => onOpenDetailsModal(m)} />
                                                                                 <Button
                                                                                     size="small"
                                                                                     type="primary"
-                                                                                    disabled={championship.status !== 'STARTED'}
-                                                                                    onClick={() => onOpenResultModal(m)}
-                                                                                >Placar</Button>
+                                                                                    icon={<EditOutlined />}
+                                                                                    onClick={() => onOpenEditModal(m)}
+                                                                                >Editar Jogo</Button>
                                                                             </Space>
                                                                         )}
                                                                     </div>

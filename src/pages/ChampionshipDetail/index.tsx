@@ -12,7 +12,6 @@ import {
     Select,
     message,
     InputNumber,
-    DatePicker,
     Spin,
     theme,
     Empty,
@@ -23,7 +22,6 @@ import {
     TrophyOutlined,
     CalendarOutlined,
     FireOutlined,
-    EnvironmentOutlined,
     EditOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
@@ -71,7 +69,6 @@ const ChampionshipDetailPage: React.FC = () => {
     const [isEditTeamsModalOpen, setIsEditTeamsModalOpen] = useState(false);
     const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState(false);
     const [isResultModalOpen, setIsResultModalOpen] = useState(false);
-    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isManualMatchModalOpen, setIsManualMatchModalOpen] = useState(false);
     const [isNextPhaseModalOpen, setIsNextPhaseModalOpen] = useState(false);
     const [isRenameLabelsModalOpen, setIsRenameLabelsModalOpen] = useState(false);
@@ -83,7 +80,6 @@ const ChampionshipDetailPage: React.FC = () => {
 
     // Forms
     const [resultForm] = Form.useForm();
-    const [detailsForm] = Form.useForm();
     const [manualMatchForm] = Form.useForm();
     const [editTeamsForm] = Form.useForm();
     const [groupForm] = Form.useForm();
@@ -195,6 +191,8 @@ const ChampionshipDetailPage: React.FC = () => {
             awayScore: match.status === 'FINISHED' ? match.awayScore : (match.awayScore ?? undefined),
             homePenalties: match.homePenalties ?? undefined,
             awayPenalties: match.awayPenalties ?? undefined,
+            location: match.location,
+            dateTime: match.dateTime ? dayjs(match.dateTime) : undefined
         });
 
         try {
@@ -214,10 +212,11 @@ const ChampionshipDetailPage: React.FC = () => {
 
     const handleSaveResult = async (values: any) => {
         setSubmitting(true);
-        const hide = message.loading('Salvando resultado...', 0);
+        const hide = message.loading('Salvando jogo...', 0);
         try {
             await api.patch(`/matches/${selectedMatch.id}`, {
                 ...values,
+                dateTime: values.dateTime?.toISOString(),
                 goals: matchGoals.map(g => ({
                     id: g.id,
                     playerId: g.playerId,
@@ -236,22 +235,12 @@ const ChampionshipDetailPage: React.FC = () => {
         } catch (err) { 
             console.error(err); 
             hide();
-            message.error('Erro ao salvar resultado');
+            message.error('Erro ao salvar jogo');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleSaveDetails = async (values: any) => {
-        try {
-            await api.patch(`/matches/${selectedMatch.id}/details`, {
-                ...values,
-                dateTime: values.dateTime?.toISOString()
-            });
-            setIsDetailsModalOpen(false);
-            fetchMatches(id!);
-        } catch (err) { console.error(err); }
-    };
 
     const handleCreateManualMatch = async (values: any) => {
         try {
@@ -903,12 +892,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                     currentRound={currentRound}
                                     setCurrentRound={setCurrentRound}
                                     championship={championship}
-                                    onOpenResultModal={handleOpenResultModal}
-                                    onOpenDetailsModal={(m: any) => {
-                                        setSelectedMatch(m);
-                                        detailsForm.setFieldsValue({ location: m.location, dateTime: m.dateTime ? dayjs(m.dateTime) : null });
-                                        setIsDetailsModalOpen(true);
-                                    }}
+                                    onOpenEditModal={handleOpenResultModal}
                                     onOpenManualMatchModal={() => setIsManualMatchModalOpen(true)}
                                 />
                             )
@@ -933,17 +917,6 @@ const ChampionshipDetailPage: React.FC = () => {
                 onRemoveGoal={removeGoal}
                 onFinish={handleSaveResult}
             />
-
-            <Modal title="Local e Hora" open={isDetailsModalOpen} onCancel={() => setIsDetailsModalOpen(false)} onOk={() => detailsForm.submit()}>
-                <Form form={detailsForm} layout="vertical" onFinish={handleSaveDetails}>
-                    <Form.Item name="location" label="Local">
-                        <Input prefix={<EnvironmentOutlined />} placeholder="Estádio, Quadra..." />
-                    </Form.Item>
-                    <Form.Item name="dateTime" label="Data e Hora">
-                        <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
-                    </Form.Item>
-                </Form>
-            </Modal>
 
             <Modal title="Definir Confronto Manual" open={isManualMatchModalOpen} onCancel={() => setIsManualMatchModalOpen(false)} onOk={() => manualMatchForm.submit()}>
                 <Form form={manualMatchForm} layout="vertical" onFinish={handleCreateManualMatch}>
