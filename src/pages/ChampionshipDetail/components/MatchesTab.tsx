@@ -158,7 +158,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
                                                                             {m.bracket === 'SILVER' ? (
                                                                                 Number(m.round) === 2 ? (
-                                                                                    <Tag color="orange" style={{ fontWeight: 600 }}>{`Disputa 3 ${labels.silver}`}</Tag>
+                                                                                    <Tag color="orange" style={{ fontWeight: 600 }}>{`Disputa de 3º lugar - ${labels.silver}`}</Tag>
                                                                                 ) : (
                                                                                     <Tag color="gold" style={{ fontWeight: 600 }}>{`Final ${labels.silver}`}</Tag>
                                                                                 )

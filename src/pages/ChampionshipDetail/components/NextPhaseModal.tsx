@@ -399,7 +399,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
             <Space direction="vertical" style={{ width: '100%' }} size={12}>
                 {preview.nextPhase === 'FINAL' && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: 8, marginBottom: 4 }}>
-                        <Text strong>Habilitar {isGold ? draftLabels.thirdPlaceLabel : `Disputa 3 ${draftLabels.silver}`}?</Text>
+                        <Text strong>Habilitar {isGold ? draftLabels.thirdPlaceLabel : `Disputa de 3º lugar - ${draftLabels.silver}`}?</Text>
                         <Switch checked={isThirdPlaceEnabled} onChange={setThirdPlaceEnabled} />
                     </div>
                 )}
@@ -421,7 +421,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                             >
                                 {preview.nextPhase === 'FINAL'
                                     ? (match.bracket === 'SILVER'
-                                        ? (Number(match.round) === 2 ? `Disputa 3 ${draftLabels.silver}` : `Final ${draftLabels.silver}`)
+                                        ? (Number(match.round) === 2 ? `Disputa de 3º lugar - ${draftLabels.silver}` : `Final ${draftLabels.silver}`)
                                         : (Number(match.round) === 2 ? draftLabels.thirdPlaceLabel : draftLabels.finalLabel))
                                     : `Jogo ${index + 1}`}
                             </Text>
@@ -646,7 +646,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                     if (preview.nextPhase === 'FINAL' && match) {
                         if (match.bracket === 'SILVER') {
                             matchLabel = Number(match.round) === 2 
-                                ? `Disputa 3 ${draftLabels.silver}` 
+                                ? `Disputa de 3º lugar - ${draftLabels.silver}` 
                                 : `Final ${draftLabels.silver}`;
                         } else {
                             matchLabel = Number(match.round) === 2 
