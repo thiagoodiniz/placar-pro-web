@@ -210,6 +210,22 @@ const ChampionshipDetailPage: React.FC = () => {
         setIsResultModalOpen(true);
     };
 
+    const refetchPlayersForMatch = async () => {
+        if (!selectedMatch) return;
+        try {
+            const [homeRes, awayRes] = await Promise.all([
+                api.get(`/teams/${selectedMatch.homeTeamId}`),
+                api.get(`/teams/${selectedMatch.awayTeamId}`)
+            ]);
+            const homeTeam = homeRes.data;
+            const awayTeam = awayRes.data;
+            setPlayers([
+                ...(homeTeam?.players?.map((p: any) => ({ ...p, teamName: homeTeam.name, teamId: homeTeam.id })) || []),
+                ...(awayTeam?.players?.map((p: any) => ({ ...p, teamName: awayTeam.name, teamId: awayTeam.id })) || [])
+            ]);
+        } catch (err) { console.error(err); }
+    };
+
     const handleSaveResult = async (values: any) => {
         setSubmitting(true);
         const hide = message.loading('Salvando jogo...', 0);
@@ -951,6 +967,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 onRemoveGoal={removeGoal}
                 onFinish={handleSaveResult}
                 confirmLoading={submitting}
+                onRefetchPlayers={refetchPlayersForMatch}
             />
 
             <Modal

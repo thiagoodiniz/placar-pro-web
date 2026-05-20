@@ -48,7 +48,16 @@ const TeamsPage: React.FC = () => {
     return (
         <div style={{ paddingBottom: 16 }}>
             {/* ── Action + Search bar ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            <div style={{ 
+                position: 'sticky', 
+                top: 56, 
+                zIndex: 10, 
+                background: token.colorBgLayout,
+                padding: '12px 0 16px',
+                marginTop: -20,
+                paddingTop: 20,
+                marginBottom: 20 
+            }}>
                 <Input
                     placeholder="Buscar time..."
                     prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
