@@ -403,6 +403,7 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                 closable={!confirmLoading}
                 maskClosable={!confirmLoading}
                 keyboard={!confirmLoading}
+                styles={{ body: { maxHeight: '65vh', overflowY: 'auto', paddingRight: 4 } }}
             >
                 <Form form={form} layout="vertical" onFinish={handleFormFinish}>
                     {loadingPlayers ? (
