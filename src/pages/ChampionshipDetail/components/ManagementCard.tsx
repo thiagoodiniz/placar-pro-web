@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
-import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined, EditOutlined } from '@ant-design/icons';
+import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined, EditOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface ManagementCardProps {
@@ -20,6 +20,9 @@ interface ManagementCardProps {
     onAutoDistributeTeams: () => void;
     onGenerateAllMatches: () => void;
     onRenameSeries?: () => void;
+    canRollbackPhase: boolean;
+    currentPhaseName: string;
+    onRollbackPhase: () => void;
     standings: any[];
     loading?: boolean;
 }
@@ -40,6 +43,8 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     onAutoDistributeTeams,
     onGenerateAllMatches,
     onRenameSeries,
+    canRollbackPhase,
+    onRollbackPhase,
     standings,
     loading
 }) => {
@@ -140,6 +145,17 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                         disabled={loading}
                     >
                         Finalizar Campeonato
+                    </Button>
+                )}
+
+                {canRollbackPhase && championship.status === 'STARTED' && user?.role && user.role !== 'USER' && (
+                    <Button
+                        danger
+                        icon={<RollbackOutlined />}
+                        onClick={onRollbackPhase}
+                        disabled={loading}
+                    >
+                        Voltar à Fase Anterior
                     </Button>
                 )}
 

@@ -342,7 +342,49 @@ const ChampionshipDetailPage: React.FC = () => {
         setIsRenameLabelsModalOpen(false);
     };
 
+    const handleRollbackPhase = () => {
+        const phaseOrderLocal = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+        const phaseNamesLocal: Record<string, string> = {
+            ROUND_16: 'Oitavas de Final',
+            QUARTER: 'Quartas de Final',
+            SEMI: 'Semifinal',
+            FINAL: 'Final',
+        };
+        const mostAdvanced = matches.length > 0
+            ? matches.reduce((latest: string, m: any) => {
+                const p = m.phase || 'GROUP';
+                return phaseOrderLocal.indexOf(p) > phaseOrderLocal.indexOf(latest) ? p : latest;
+            }, 'GROUP')
+            : 'GROUP';
+        const phaseName = phaseNamesLocal[mostAdvanced] || mostAdvanced;
+
+        Modal.confirm({
+            title: 'Voltar à Fase Anterior',
+            content: `Tem certeza? Todos os jogos da fase "${phaseName}" serão apagados permanentemente. Os jogos das fases anteriores serão mantidos.`,
+            okText: 'Sim, Voltar',
+            cancelText: 'Cancelar',
+            okType: 'danger',
+            onOk: async () => {
+                setSubmitting(true);
+                const hide = message.loading('Voltando à fase anterior...', 0);
+                try {
+                    await api.post(`/championships/${id}/rollback-phase`);
+                    hide();
+                    message.success(`Fase "${phaseName}" removida com sucesso!`);
+                    await Promise.all([fetchMatches(id!), fetchStandings(id!), fetchScorers(id!)]);
+                } catch (err: any) {
+                    console.error(err);
+                    hide();
+                    message.error(err?.response?.data?.error || 'Erro ao voltar à fase anterior');
+                } finally {
+                    setSubmitting(false);
+                }
+            }
+        });
+    };
+
     const handleDeleteChampionship = async () => {
+
         Modal.confirm({
             title: 'Excluir Campeonato',
             content: 'Tem certeza que deseja excluir este campeonato? Todos os dados vinculados (jogos, grupos, artilharia) serão perdidos permanentemente.',
@@ -592,7 +634,24 @@ const ChampionshipDetailPage: React.FC = () => {
         }
     }
 
-    // Determine champion and silver champion
+    // Determine rollback phase availability
+    const phaseOrderRollback = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+    const phaseNamesMap: Record<string, string> = {
+        ROUND_16: 'Oitavas de Final',
+        QUARTER: 'Quartas de Final',
+        SEMI: 'Semifinal',
+        FINAL: 'Final',
+    };
+    const advancedPhases = ['ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+    const mostAdvancedPhase = matches.length > 0
+        ? matches.reduce((latest: string, m: any) => {
+            const p = m.phase || 'GROUP';
+            return phaseOrderRollback.indexOf(p) > phaseOrderRollback.indexOf(latest) ? p : latest;
+        }, 'GROUP')
+        : 'GROUP';
+    const canRollbackPhase = championship?.status === 'STARTED' && advancedPhases.includes(mostAdvancedPhase);
+    const currentPhaseName = phaseNamesMap[mostAdvancedPhase] || '';
+
     let championName = championship?.champion;
     let silverChampionName = championship?.silverChampion;
 
@@ -872,6 +931,9 @@ const ChampionshipDetailPage: React.FC = () => {
                                 });
                                 setIsRenameLabelsModalOpen(true);
                             } : undefined}
+                            canRollbackPhase={canRollbackPhase}
+                            currentPhaseName={currentPhaseName}
+                            onRollbackPhase={handleRollbackPhase}
                             standings={standings}
                         />
                     </Col>
