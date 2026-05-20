@@ -63,7 +63,7 @@ const ChampionshipHeader: React.FC<ChampionshipHeaderProps> = ({ championship, o
                             Compartilhar
                         </Button>
                     )}
-                    {championship.status === 'DRAFT' && user?.role && user.role !== 'USER' && (
+                    {(championship.status === 'DRAFT' || championship.status === 'STARTED') && user?.role && user.role !== 'USER' && (
                         <Button
                             icon={<SettingOutlined />}
                             onClick={onOpenConfig}

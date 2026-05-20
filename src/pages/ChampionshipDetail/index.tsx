@@ -1034,7 +1034,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 </Form>
             </Modal>
 
-            <ChampionshipModal open={isConfigModalOpen} onCancel={() => setIsConfigModalOpen(false)} onSave={handleUpdateConfig} initialValues={championship} isEditing={true} submitting={submitting} />
+            <ChampionshipModal open={isConfigModalOpen} onCancel={() => setIsConfigModalOpen(false)} onSave={handleUpdateConfig} initialValues={championship} isEditing={true} submitting={submitting} nameOnly={championship?.status === 'STARTED'} />
 
             <Modal
                 title="Definir Times"

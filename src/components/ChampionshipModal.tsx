@@ -11,6 +11,7 @@ interface ChampionshipModalProps {
     initialValues?: any;
     isEditing?: boolean;
     submitting?: boolean;
+    nameOnly?: boolean;
 }
 
 const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
@@ -20,6 +21,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
     initialValues,
     isEditing = false,
     submitting = false,
+    nameOnly = false,
 }) => {
     const { token } = theme.useToken();
     const [form] = Form.useForm();
@@ -52,7 +54,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
             title={
                 <Space>
                     {isEditing ? <SettingOutlined /> : <TrophyOutlined />}
-                    <span>{isEditing ? "Configurar Campeonato" : "Novo Campeonato"}</span>
+                    <span>{nameOnly ? 'Renomear Campeonato' : isEditing ? 'Configurar Campeonato' : 'Novo Campeonato'}</span>
                 </Space>
             }
             open={open}
@@ -77,11 +79,13 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                     <Input placeholder="Ex: Copa Interbairros 2024" size="large" style={{ borderRadius: 8 }} disabled={submitting} />
                 </Form.Item>
 
-                <Form.Item name="format" label="Formato da Competição">
+                <Form.Item
+                    name="format" label="Formato da Competição"
+                >
                     <Select
                         size="large"
                         style={{ borderRadius: 8 }}
-                        disabled={submitting}
+                        disabled={submitting || nameOnly}
                         options={[
                             { label: 'Grupos + Mata-mata', value: 'GROUPS_KNOCKOUT' },
                             { label: 'Mata-mata Direto (em breve)', value: 'KNOCKOUT', disabled: true },
@@ -109,7 +113,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                                         { type: 'number', min: format === 'KNOCKOUT' ? 2 : 3, message: `Mínimo de ${format === 'KNOCKOUT' ? 2 : 3} times` }
                                     ]}
                                 >
-                                    <InputNumber min={2} style={{ width: '100%', borderRadius: 8 }} size="large" disabled={submitting} />
+                                    <InputNumber min={2} style={{ width: '100%', borderRadius: 8 }} size="large" disabled={submitting || nameOnly} />
                                 </Form.Item>
 
                                 {format === 'GROUPS_KNOCKOUT' && (
@@ -133,7 +137,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                                                         }),
                                                     ]}
                                                 >
-                                                    <InputNumber min={1} max={teamCount} style={{ width: '100%', borderRadius: 8 }} disabled={submitting} />
+                                                    <InputNumber min={1} max={teamCount} style={{ width: '100%', borderRadius: 8 }} disabled={submitting || nameOnly} />
                                                 </Form.Item>
                                             </Col>
                                             <Col span={12}>
@@ -155,7 +159,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
                                                         }),
                                                     ]}
                                                 >
-                                                    <InputNumber min={1} style={{ width: '100%', borderRadius: 8 }} disabled={submitting} />
+                                                    <InputNumber min={1} style={{ width: '100%', borderRadius: 8 }} disabled={submitting || nameOnly} />
                                                 </Form.Item>
                                             </Col>
                                         </Row>
@@ -176,7 +180,7 @@ const ChampionshipModal: React.FC<ChampionshipModalProps> = ({
 
                                 {format === 'LEAGUE' && (
                                     <Form.Item name="roundTrip" label="Sistema de Rodadas">
-                                        <Radio.Group style={{ width: '100%' }} disabled={submitting}>
+                                        <Radio.Group style={{ width: '100%' }} disabled={submitting || nameOnly}>
                                             <Radio.Button value={false} style={{ width: '50%', textAlign: 'center' }}>Turno Único</Radio.Button>
                                             <Radio.Button value={true} style={{ width: '50%', textAlign: 'center' }}>Ida e Volta</Radio.Button>
                                         </Radio.Group>
