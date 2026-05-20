@@ -14,6 +14,7 @@ const UsersPage: React.FC = () => {
     const { user } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
     useEffect(() => {
         setTitle('Gerenciar Usuários');
@@ -33,13 +34,20 @@ const UsersPage: React.FC = () => {
     };
 
     const handleRoleChange = async (userId: string, role: string) => {
+        setUpdatingUserId(userId);
+        const hide = message.loading('Atualizando permissão...', 0);
         try {
             await api.patch(`/auth/users/${userId}/role`, { role });
             trackEvent('role_updated', { target_user_id: userId, new_role: role });
+            hide();
             message.success('Permissão atualizada!');
-            fetchUsers();
+            await fetchUsers();
         } catch (err) {
+            console.error(err);
+            hide();
             message.error('Erro ao atualizar permissão');
+        } finally {
+            setUpdatingUserId(null);
         }
     };
 
@@ -64,7 +72,8 @@ const UsersPage: React.FC = () => {
                                     defaultValue={u.role}
                                     style={{ width: 120 }}
                                     onChange={(value) => handleRoleChange(u.id, value)}
-                                    disabled={u.id === user.id}
+                                    disabled={u.id === user.id || updatingUserId !== null}
+                                    loading={updatingUserId === u.id}
                                     dropdownStyle={{ borderRadius: 8 }}
                                 >
                                     <Select.Option value="ADMIN">ADMIN</Select.Option>

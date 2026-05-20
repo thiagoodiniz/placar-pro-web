@@ -22,6 +22,7 @@ interface NextPhaseModalProps {
     } | null;
     onSave: (matches: { homeTeamId: string; awayTeamId: string; bracket: 'GOLD' | 'SILVER'; round?: number }[]) => void;
     onSaveLabels?: (labels: Record<string, string>) => void;
+    confirmLoading?: boolean;
 }
 
 const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
@@ -33,6 +34,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
     preview,
     onSave,
     onSaveLabels,
+    confirmLoading
 }) => {
     const [matchups, setMatchups] = useState<{ homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER'; round?: number }[]>([]);
     const [selectingSlot, setSelectingSlot] = useState<{ index: number; side: 'home' | 'away' } | null>(null);
@@ -487,6 +489,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                 title={`Definir Confrontos — ${preview.nextPhase}`}
                 open={isOpen}
                 onCancel={() => {
+                    if (confirmLoading) return;
                     setSelectingSlot(null);
                     onClose();
                 }}
@@ -496,11 +499,14 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                 styles={{
                     body: { padding: '12px 16px', maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' },
                 }}
+                closable={!confirmLoading}
+                keyboard={!confirmLoading}
+                maskClosable={!confirmLoading}
                 footer={[
-                    <Button key="cancel" onClick={onClose} style={{ flex: 1 }}>
+                    <Button key="cancel" onClick={onClose} style={{ flex: 1 }} disabled={confirmLoading}>
                         Cancelar
                     </Button>,
-                    <Button key="save" type="primary" onClick={handleSave} style={{ flex: 1 }}>
+                    <Button key="save" type="primary" onClick={handleSave} style={{ flex: 1 }} loading={confirmLoading}>
                         Salvar e Iniciar Fase
                     </Button>,
                 ]}

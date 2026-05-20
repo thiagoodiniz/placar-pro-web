@@ -243,12 +243,22 @@ const ChampionshipDetailPage: React.FC = () => {
 
 
     const handleCreateManualMatch = async (values: any) => {
+        setSubmitting(true);
+        const hide = message.loading('Criando partida...', 0);
         try {
             await api.post(`/championships/match`, { championshipId: id, ...values });
             setIsManualMatchModalOpen(false);
             manualMatchForm.resetFields();
-            fetchMatches(id!);
-        } catch (err) { console.error(err); }
+            await fetchMatches(id!);
+            hide();
+            message.success('Partida criada com sucesso!');
+        } catch (err) {
+            console.error(err);
+            hide();
+            message.error('Erro ao criar partida');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleFinalize = async () => {
@@ -290,13 +300,19 @@ const ChampionshipDetailPage: React.FC = () => {
     };
 
     const handleSaveLabels = async (labels: Record<string, string>) => {
+        setSubmitting(true);
+        const hide = message.loading('Salvando rótulos...', 0);
         try {
             await api.patch(`/championships/${id}`, { bracketLabels: labels });
             await fetchChampionship(id!);
+            hide();
             message.success('Rótulos das séries atualizados!');
         } catch (err) {
             console.error(err);
+            hide();
             message.error('Erro ao salvar rótulos');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -431,6 +447,7 @@ const ChampionshipDetailPage: React.FC = () => {
     };
 
     const handleUpdateGroup = async (values: any) => {
+        setSubmitting(true);
         const hide = message.loading('Salvando grupo...', 0);
         try {
             const tc = Number(championship.teamCount) || 0;
@@ -456,10 +473,13 @@ const ChampionshipDetailPage: React.FC = () => {
             console.error(error);
             hide();
             message.error('Erro ao atualizar grupo');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleGenerateGroupMatches = async (groupId: string) => {
+        setSubmitting(true);
         const hide = message.loading('Sorteando confrontos do grupo...', 0);
         try {
             await api.post(`/championships/groups/${groupId}/generate-matches`);
@@ -470,6 +490,8 @@ const ChampionshipDetailPage: React.FC = () => {
             console.error(error); 
             hide();
             message.error('Erro ao gerar confrontos do grupo');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -858,11 +880,23 @@ const ChampionshipDetailPage: React.FC = () => {
                     }}
                     onGenerateMatches={handleGenerateGroupMatches}
                     onRemoveTeam={async (teamName) => {
-                        const remainingTeams = championship.teams
-                            .filter((t: any) => t.team.name !== teamName)
-                            .map((t: any) => t.teamId);
-                        await api.post('/teams/championship', { championshipId: id, teamIds: remainingTeams });
-                        fetchChampionship(id!);
+                        setSubmitting(true);
+                        const hide = message.loading('Removendo time...', 0);
+                        try {
+                            const remainingTeams = championship.teams
+                                .filter((t: any) => t.team.name !== teamName)
+                                .map((t: any) => t.teamId);
+                            await api.post('/teams/championship', { championshipId: id, teamIds: remainingTeams });
+                            await fetchChampionship(id!);
+                            hide();
+                            message.success('Time removido do campeonato com sucesso!');
+                        } catch (err) {
+                            console.error(err);
+                            hide();
+                            message.error('Erro ao remover time do campeonato');
+                        } finally {
+                            setSubmitting(false);
+                        }
                     }}
                 />
             )}
@@ -916,9 +950,23 @@ const ChampionshipDetailPage: React.FC = () => {
                 onAddGoal={addGoal}
                 onRemoveGoal={removeGoal}
                 onFinish={handleSaveResult}
+                confirmLoading={submitting}
             />
 
-            <Modal title="Definir Confronto Manual" open={isManualMatchModalOpen} onCancel={() => setIsManualMatchModalOpen(false)} onOk={() => manualMatchForm.submit()}>
+            <Modal
+                title="Definir Confronto Manual"
+                open={isManualMatchModalOpen}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsManualMatchModalOpen(false);
+                }}
+                onOk={() => manualMatchForm.submit()}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
+            >
                 <Form form={manualMatchForm} layout="vertical" onFinish={handleCreateManualMatch}>
                     {championship.format === 'GROUPS_KNOCKOUT' && (
                         <Form.Item name="groupId" label="Grupo" rules={[{ required: true }]}>
@@ -969,9 +1017,23 @@ const ChampionshipDetailPage: React.FC = () => {
                 </Form>
             </Modal>
 
-            <ChampionshipModal open={isConfigModalOpen} onCancel={() => setIsConfigModalOpen(false)} onSave={handleUpdateConfig} initialValues={championship} isEditing={true} />
+            <ChampionshipModal open={isConfigModalOpen} onCancel={() => setIsConfigModalOpen(false)} onSave={handleUpdateConfig} initialValues={championship} isEditing={true} submitting={submitting} />
 
-            <Modal title="Definir Times" open={isEditTeamsModalOpen} onCancel={() => setIsEditTeamsModalOpen(false)} onOk={() => editTeamsForm.submit()} width={480}>
+            <Modal
+                title="Definir Times"
+                open={isEditTeamsModalOpen}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsEditTeamsModalOpen(false);
+                }}
+                onOk={() => editTeamsForm.submit()}
+                width={480}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
+            >
                 <Form form={editTeamsForm} layout="vertical" onFinish={handleEditTeams}>
                     <Form.Item name="teamIds">
                         <TeamPicker
@@ -987,9 +1049,17 @@ const ChampionshipDetailPage: React.FC = () => {
             <Modal
                 title={`Editar ${selectedGroup?.name || 'Grupo'}`}
                 open={isEditGroupModalOpen}
-                onCancel={() => setIsEditGroupModalOpen(false)}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsEditGroupModalOpen(false);
+                }}
                 onOk={() => groupForm.submit()}
                 width={520}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
             >
                 <Form form={groupForm} layout="vertical" onFinish={handleUpdateGroup}>
                     <Form.Item name="name" label="Nome do Grupo" rules={[{ required: true }]}>
@@ -1028,9 +1098,13 @@ const ChampionshipDetailPage: React.FC = () => {
                     matches={matches}
                     preview={nextPhasePreview}
                     onSaveLabels={user?.role === 'ADMIN' ? handleSaveLabels : undefined}
+                    confirmLoading={submitting}
                     onSave={async (matchesToSave) => {
+                        setSubmitting(true);
+                        const hide = message.loading(`Iniciando ${nextPhaseName}...`, 0);
                         try {
                             await api.post(`/championships/${id}/next-phase`, { matches: matchesToSave });
+                            hide();
                             message.success(`${nextPhaseName} iniciada!`);
                             setIsNextPhaseModalOpen(false);
                             await fetchMatches(id!);
@@ -1040,7 +1114,10 @@ const ChampionshipDetailPage: React.FC = () => {
                             setCurrentRound(1);
                         } catch (err) {
                             console.error(err);
+                            hide();
                             message.error('Erro ao iniciar próxima fase');
+                        } finally {
+                            setSubmitting(false);
                         }
                     }}
                 />
@@ -1050,10 +1127,18 @@ const ChampionshipDetailPage: React.FC = () => {
             <Modal
                 title={<><EditOutlined style={{ marginRight: 8 }} />Renomear Séries</>}
                 open={isRenameLabelsModalOpen}
-                onCancel={() => setIsRenameLabelsModalOpen(false)}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsRenameLabelsModalOpen(false);
+                }}
                 onOk={() => renameLabelsForm.submit()}
                 okText="Salvar"
                 width={420}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
             >
                 <Form
                     form={renameLabelsForm}

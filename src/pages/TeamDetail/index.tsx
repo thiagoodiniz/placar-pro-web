@@ -456,6 +456,7 @@ const TeamDetailPage: React.FC = () => {
                 onFinish={handleSavePlayer}
                 form={playerForm}
                 isEdit={isPlayerEdit}
+                confirmLoading={submitting}
             />
         </div>
     );

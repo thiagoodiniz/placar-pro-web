@@ -14,9 +14,10 @@ interface PlayerModalProps {
     onFinish: (values: any) => void;
     form: any;
     isEdit: boolean;
+    confirmLoading?: boolean;
 }
 
-const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, form, isEdit }) => {
+const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, form, isEdit, confirmLoading }) => {
     const { user } = useAuth();
     const canSeeDocument = user?.role && user.role !== 'USER';
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -48,13 +49,21 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, for
         <Modal
             title={isEdit ? "Editar Jogador" : "Adicionar Jogadores"}
             open={open}
-            onCancel={onCancel}
+            onCancel={() => {
+                if (confirmLoading) return;
+                onCancel();
+            }}
             onOk={() => form.submit()}
             okText="Salvar"
             cancelText="Cancelar"
             centered
             destroyOnClose
             width={600}
+            confirmLoading={confirmLoading}
+            cancelButtonProps={{ disabled: confirmLoading }}
+            closable={!confirmLoading}
+            maskClosable={!confirmLoading}
+            keyboard={!confirmLoading}
         >
             <div ref={scrollRef} style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'hidden', paddingRight: 8 }}>
                 <Form form={form} layout="vertical" onFinish={handleSubmit} style={{ marginTop: 16 }}>

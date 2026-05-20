@@ -14,6 +14,7 @@ interface MatchEditModalProps {
     onAddGoal: (player: any) => void;
     onRemoveGoal: (goalId: string) => void;
     onFinish: (values: any) => void;
+    confirmLoading?: boolean;
 }
 
 const MatchResultModal: React.FC<MatchEditModalProps> = ({
@@ -25,7 +26,8 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
     matchGoals,
     onAddGoal,
     onRemoveGoal,
-    onFinish
+    onFinish,
+    confirmLoading
 }) => {
     const { token } = theme.useToken();
     
@@ -175,12 +177,20 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
         <Modal 
             title="Editar Jogo" 
             open={open} 
-            onCancel={onCancel} 
+            onCancel={() => {
+                if (confirmLoading) return;
+                onCancel();
+            }} 
             onOk={() => form.submit()} 
             width={600}
             destroyOnClose
             okText="Salvar"
             cancelText="Cancelar"
+            confirmLoading={confirmLoading}
+            cancelButtonProps={{ disabled: confirmLoading }}
+            closable={!confirmLoading}
+            maskClosable={!confirmLoading}
+            keyboard={!confirmLoading}
         >
             <Form form={form} layout="vertical" onFinish={onFinish}>
                 <Tabs 

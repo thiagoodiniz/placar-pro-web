@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, InputNumber, Card, Typography, Space, DatePicker, Input, Select, Divider } from 'antd';
+import { Table, Button, Modal, Form, InputNumber, Card, Typography, Space, DatePicker, Input, Select, Divider, message } from 'antd';
 import { EditOutlined, TrophyOutlined, EnvironmentOutlined, ClockCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import api from '../../services/api';
 import dayjs from 'dayjs';
@@ -12,6 +12,7 @@ const MatchManagementPage: React.FC = () => {
     const [selectedChamp, setSelectedChamp] = useState<any>(null);
     const [matches, setMatches] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
+    const [submitting, setSubmitting] = useState(false);
 
     const [isResultModalOpen, setIsResultModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -55,6 +56,8 @@ const MatchManagementPage: React.FC = () => {
     };
 
     const handleUpdateResult = async (values: any) => {
+        setSubmitting(true);
+        const hide = message.loading('Registrando resultado da partida...', 0);
         try {
             // Transform goals: values.goals is [{ playerName: [name], teamId: id }]
             const transformedGoals = (values.goals || []).map((g: any) => {
@@ -72,36 +75,58 @@ const MatchManagementPage: React.FC = () => {
                 ...values,
                 goals: transformedGoals
             });
+            hide();
+            message.success('Resultado registrado com sucesso!');
             setIsResultModalOpen(false);
             fetchMatches(selectedChamp.id);
         } catch (error) {
             console.error('Error updating match result', error);
+            hide();
+            message.error('Erro ao registrar resultado da partida');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleUpdateDetails = async (values: any) => {
+        setSubmitting(true);
+        const hide = message.loading('Atualizando local e horário...', 0);
         try {
             const formattedDate = values.dateTime ? values.dateTime.toISOString() : undefined;
             await api.patch(`/matches/${selectedMatch.id}/details`, { ...values, dateTime: formattedDate });
+            hide();
+            message.success('Local e horário atualizados com sucesso!');
             setIsDetailsModalOpen(false);
             fetchMatches(selectedChamp.id);
         } catch (error) {
             console.error('Error updating match details', error);
+            hide();
+            message.error('Erro ao atualizar local e horário');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleCreateMatch = async (values: any) => {
+        setSubmitting(true);
+        const hide = message.loading('Criando nova partida...', 0);
         try {
             // We need a create match endpoint. 
             // For now, I'll assume the backend has it under POST /matches
             // or I'll just skip the actual implementation if it blocks.
             // I already added Match.create to the mock, let's use it.
             await api.post('/championships/match', { ...values, championshipId: selectedChamp.id });
+            hide();
+            message.success('Partida criada com sucesso!');
             setIsCreateMatchModalOpen(false);
             createMatchForm.resetFields();
             fetchMatches(selectedChamp.id);
         } catch (error) {
             console.error('Error creating match', error);
+            hide();
+            message.error('Erro ao criar partida');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -246,9 +271,17 @@ const MatchManagementPage: React.FC = () => {
             <Modal
                 title="Registrar Resultado"
                 open={isResultModalOpen}
-                onCancel={() => setIsResultModalOpen(false)}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsResultModalOpen(false);
+                }}
                 onOk={() => resultForm.submit()}
                 width={600}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
             >
                 <Form form={resultForm} layout="vertical" onFinish={handleUpdateResult}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '16px', marginBottom: '24px' }}>
@@ -260,8 +293,10 @@ const MatchManagementPage: React.FC = () => {
                             <InputNumber min={0} size="large" />
                         </Form.Item>
                     </div>
+ 
 
                     <Divider orientation="left">Gols e Autores</Divider>
+ 
 
                     <Form.List name="goals">
                         {(fields, { add, remove }) => (
@@ -311,9 +346,22 @@ const MatchManagementPage: React.FC = () => {
                     </Form.List>
                 </Form>
             </Modal>
-
+ 
             {/* Details Modal */}
-            <Modal title="Editar Local e Horário" open={isDetailsModalOpen} onCancel={() => setIsDetailsModalOpen(false)} onOk={() => detailsForm.submit()}>
+            <Modal
+                title="Editar Local e Horário"
+                open={isDetailsModalOpen}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsDetailsModalOpen(false);
+                }}
+                onOk={() => detailsForm.submit()}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
+            >
                 <Form form={detailsForm} layout="vertical" onFinish={handleUpdateDetails}>
                     <Form.Item name="location" label="Local da Partida">
                         <Input prefix={<EnvironmentOutlined />} placeholder="Ex: Estádio Municipal, Quadra B..." />
@@ -323,9 +371,22 @@ const MatchManagementPage: React.FC = () => {
                     </Form.Item>
                 </Form>
             </Modal>
-
+ 
             {/* Create Match Modal */}
-            <Modal title="Criar Nova Partida" open={isCreateMatchModalOpen} onCancel={() => setIsCreateMatchModalOpen(false)} onOk={() => createMatchForm.submit()}>
+            <Modal
+                title="Criar Nova Partida"
+                open={isCreateMatchModalOpen}
+                onCancel={() => {
+                    if (submitting) return;
+                    setIsCreateMatchModalOpen(false);
+                }}
+                onOk={() => createMatchForm.submit()}
+                confirmLoading={submitting}
+                cancelButtonProps={{ disabled: submitting }}
+                closable={!submitting}
+                maskClosable={!submitting}
+                keyboard={!submitting}
+            >
                 <Form form={createMatchForm} layout="vertical" onFinish={handleCreateMatch}>
                     <div style={{ display: 'flex', gap: '16px' }}>
                         <Form.Item name="homeTeamId" label="Mandante" style={{ flex: 1 }} rules={[{ required: true }]}>
