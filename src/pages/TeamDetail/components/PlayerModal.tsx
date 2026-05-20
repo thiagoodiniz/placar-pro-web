@@ -76,7 +76,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, for
                             <Row gutter={16}>
                                 <Col xs={24} sm={canSeeDocument ? 12 : 24}>
                                     <Form.Item name="birthDate" label="Data de Nascimento">
-                                        <Input type="date" style={{ width: '100%', borderRadius: 8 }} />
+                                        <Input type="date" style={{ width: '100%', borderRadius: 8, height: 32 }} />
                                     </Form.Item>
                                 </Col>
                                 
@@ -153,7 +153,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, for
                                                 <Row gutter={16}>
                                                     <Col xs={24} sm={canSeeDocument ? 12 : 24}>
                                                         <Form.Item {...restField} name={[name, 'birthDate']} label="Data de Nasc.">
-                                                            <Input type="date" style={{ width: '100%', borderRadius: 8 }} />
+                                                            <Input type="date" style={{ width: '100%', borderRadius: 8, height: 32 }} />
                                                         </Form.Item>
                                                     </Col>
                                                     
