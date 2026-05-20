@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Modal, Form, Input, Upload, Button, Avatar, Space, message, Typography, Card } from 'antd';
+import { Modal, Form, Input, Upload, Button, Avatar, Space, message, Typography, Card, Row, Col } from 'antd';
 import { UploadOutlined, UserOutlined, CloseOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { compressImage } from '../../../utils/imageUtils';
 import { trackEvent } from '../../../services/analytics';
@@ -73,17 +73,21 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, for
                                 <Input placeholder="Ex: Cristiano Ronaldo" style={{ borderRadius: 8 }} />
                             </Form.Item>
                             
-                            <div style={{ display: 'flex', gap: 16 }}>
-                                <Form.Item name="birthDate" label="Data de Nascimento" style={{ flex: 1 }}>
-                                    <Input type="date" style={{ width: '100%', borderRadius: 8 }} />
-                                </Form.Item>
+                            <Row gutter={16}>
+                                <Col xs={24} sm={canSeeDocument ? 12 : 24}>
+                                    <Form.Item name="birthDate" label="Data de Nascimento">
+                                        <Input type="date" style={{ width: '100%', borderRadius: 8 }} />
+                                    </Form.Item>
+                                </Col>
                                 
                                 {canSeeDocument && (
-                                    <Form.Item name="document" label="Documento" style={{ flex: 1 }}>
-                                        <Input placeholder="RG, CPF ou Passaporte" style={{ borderRadius: 8 }} />
-                                    </Form.Item>
+                                    <Col xs={24} sm={12}>
+                                        <Form.Item name="document" label="Documento">
+                                            <Input placeholder="RG, CPF ou Passaporte" style={{ borderRadius: 8 }} />
+                                        </Form.Item>
+                                    </Col>
                                 )}
-                            </div>
+                            </Row>
 
                             <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16 }}>
                                 <Avatar 
@@ -146,17 +150,21 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ open, onCancel, onFinish, for
                                                     <Input placeholder="Ex: Cristiano Ronaldo" style={{ borderRadius: 8 }} />
                                                 </Form.Item>
 
-                                                <div style={{ display: 'flex', gap: 16 }}>
-                                                    <Form.Item {...restField} name={[name, 'birthDate']} label="Data de Nasc." style={{ flex: 1 }}>
-                                                        <Input type="date" style={{ width: '100%', borderRadius: 8 }} />
-                                                    </Form.Item>
+                                                <Row gutter={16}>
+                                                    <Col xs={24} sm={canSeeDocument ? 12 : 24}>
+                                                        <Form.Item {...restField} name={[name, 'birthDate']} label="Data de Nasc.">
+                                                            <Input type="date" style={{ width: '100%', borderRadius: 8 }} />
+                                                        </Form.Item>
+                                                    </Col>
                                                     
                                                     {canSeeDocument && (
-                                                        <Form.Item {...restField} name={[name, 'document']} label="Documento" style={{ flex: 1 }}>
-                                                            <Input placeholder="RG, CPF..." style={{ borderRadius: 8 }} />
-                                                        </Form.Item>
+                                                        <Col xs={24} sm={12}>
+                                                            <Form.Item {...restField} name={[name, 'document']} label="Documento">
+                                                                <Input placeholder="RG, CPF..." style={{ borderRadius: 8 }} />
+                                                            </Form.Item>
+                                                        </Col>
                                                     )}
-                                                </div>
+                                                </Row>
 
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                                     <Avatar 
