@@ -41,6 +41,7 @@ const TeamDetailPage: React.FC = () => {
     };
 
     const isEditing = !!id && id !== 'new';
+    const canEdit = user?.role && user.role !== 'USER';
     const [loading, setLoading] = useState(isEditing);
     const [submitting, setSubmitting] = useState(false);
     const [teamForm] = Form.useForm();
@@ -195,11 +196,18 @@ const TeamDetailPage: React.FC = () => {
         if (player) {
             setIsPlayerEdit(true);
             setEditingPlayer(player);
-            playerForm.setFieldsValue({ name: player.name, photoUrl: player.photoUrl });
+            playerForm.setFieldsValue({ 
+                name: player.name, 
+                photoUrl: player.photoUrl,
+                birthDate: player.birthDate || undefined,
+                document: player.document
+            });
         } else {
             setIsPlayerEdit(false);
             setEditingPlayer(null);
             playerForm.resetFields();
+            // Reset to a single empty player in the list for creation
+            playerForm.setFieldsValue({ players: [{}] });
         }
         setIsPlayerModalOpen(true);
     };
@@ -238,7 +246,7 @@ const TeamDetailPage: React.FC = () => {
                     <Row gutter={[24, 0]}>
                         <Col xs={24} sm={16}>
                             <Form.Item name="name" label="Nome do clube" rules={[{ required: true, message: 'O nome é essencial' }]}>
-                                <Input placeholder="Digite o nome do time" size="large" style={{ borderRadius: 12 }} disabled={submitting} />
+                                <Input placeholder="Digite o nome do time" size="large" style={{ borderRadius: 12 }} disabled={submitting || !canEdit} />
                             </Form.Item>
                             <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                                 <Avatar
@@ -256,33 +264,37 @@ const TeamDetailPage: React.FC = () => {
                                 </Avatar>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Escudo do Clube</div>
-                                    <Space size="small" wrap>
-                                        <Upload
-                                            showUploadList={false}
-                                            beforeUpload={async (file) => {
-                                                try {
-                                                    const base64 = await compressImage(file);
-                                                    teamForm.setFieldsValue({ logoUrl: base64 });
-                                                    trackEvent('image_uploaded', { type: 'team_logo' });
-                                                } catch (err) {
-                                                    message.error('Erro ao processar imagem');
-                                                }
-                                                return false;
-                                            }}
-                                        >
-                                            <Button icon={<UploadOutlined />} disabled={submitting}>Selecionar Imagem</Button>
-                                        </Upload>
-                                        {logoUrl && (
-                                            <Button 
-                                                icon={<CloseOutlined />} 
-                                                onClick={() => teamForm.setFieldsValue({ logoUrl: '' })}
-                                                disabled={submitting}
-                                                danger
+                                    {canEdit ? (
+                                        <Space size="small" wrap>
+                                            <Upload
+                                                showUploadList={false}
+                                                beforeUpload={async (file) => {
+                                                    try {
+                                                        const base64 = await compressImage(file);
+                                                        teamForm.setFieldsValue({ logoUrl: base64 });
+                                                        trackEvent('image_uploaded', { type: 'team_logo' });
+                                                    } catch (err) {
+                                                        message.error('Erro ao processar imagem');
+                                                    }
+                                                    return false;
+                                                }}
                                             >
-                                                Remover
-                                            </Button>
-                                        )}
-                                    </Space>
+                                                <Button icon={<UploadOutlined />} disabled={submitting}>Selecionar Imagem</Button>
+                                            </Upload>
+                                            {logoUrl && (
+                                                <Button 
+                                                    icon={<CloseOutlined />} 
+                                                    onClick={() => teamForm.setFieldsValue({ logoUrl: '' })}
+                                                    disabled={submitting}
+                                                    danger
+                                                >
+                                                    Remover
+                                                </Button>
+                                            )}
+                                        </Space>
+                                    ) : (
+                                        <Typography.Text type="secondary" style={{ fontSize: 13 }}>Apenas administradores podem alterar o escudo.</Typography.Text>
+                                    )}
                                     <Form.Item name="logoUrl" hidden>
                                         <Input />
                                     </Form.Item>
@@ -298,7 +310,7 @@ const TeamDetailPage: React.FC = () => {
                                             showText
                                             format="hex"
                                             onChange={(color) => teamForm.setFieldsValue({ primaryColor: color.toHexString() })}
-                                            disabled={submitting}
+                                            disabled={submitting || !canEdit}
                                         />
                                     </Form.Item>
                                 </Col>
@@ -308,7 +320,7 @@ const TeamDetailPage: React.FC = () => {
                                             showText
                                             format="hex"
                                             onChange={(color) => teamForm.setFieldsValue({ secondaryColor: color.toHexString() })}
-                                            disabled={submitting}
+                                            disabled={submitting || !canEdit}
                                         />
                                     </Form.Item>
                                 </Col>

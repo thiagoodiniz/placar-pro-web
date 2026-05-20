@@ -72,6 +72,22 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, onAdd, onEdit, onDelet
                                         </Avatar>
                                     }
                                     title={player.name}
+                                    description={
+                                        (player.birthDate || (user?.role && user.role !== 'USER' && player.document)) ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+                                                {player.birthDate && (
+                                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                        Nasc: {player.birthDate.split('-').reverse().join('/')}
+                                                    </Typography.Text>
+                                                )}
+                                                {user?.role && user.role !== 'USER' && player.document && (
+                                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                        Doc: {player.document}
+                                                    </Typography.Text>
+                                                )}
+                                            </div>
+                                        ) : undefined
+                                    }
                                 />
                             </Card>
                         </List.Item>
