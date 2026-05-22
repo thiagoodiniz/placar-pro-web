@@ -14,8 +14,11 @@ interface MatchesTabProps {
     currentRound: number;
     setCurrentRound: (round: number) => void;
     championship: any;
+    mainSeriesPhase: string;
     onOpenEditModal: (match: any) => void;
     onOpenManualMatchModal: () => void;
+    onCreateParallelMatches?: (phase: string) => void;
+    onDeleteMatch?: (match: any) => void;
     loadingMatchId?: string | null;
 }
 
@@ -26,8 +29,11 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
     currentRound,
     setCurrentRound,
     championship,
+    mainSeriesPhase,
     onOpenEditModal,
     onOpenManualMatchModal,
+    onCreateParallelMatches,
+    onDeleteMatch,
     loadingMatchId,
 }) => {
     const { token } = theme.useToken();
@@ -85,8 +91,14 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
 
                             const matchesByGroup = roundMatches.reduce((acc: any, m: any) => {
                                 let g = m.groupName || '';
-                                if (phase !== 'GROUP' && m.bracket) {
-                                    g = m.bracket === 'GOLD' ? labels.gold : labels.silver;
+                                if (phase !== 'GROUP') {
+                                    if (m.seriesLabel) {
+                                        g = m.seriesLabel;
+                                    } else if (m.bracket === 'SILVER') {
+                                        g = labels.silver;
+                                    } else {
+                                        g = labels.gold;
+                                    }
                                 }
                                 if (!acc[g]) acc[g] = [];
                                 acc[g].push(m);
@@ -121,9 +133,18 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                         {Object.keys(matchesByGroup)
                                             .sort((a, b) => {
                                                 if (phase !== 'GROUP') {
+                                                    // Gold series always first
                                                     if (a === labels.gold) return -1;
                                                     if (b === labels.gold) return 1;
+                                                    // Silver/3rd place second
+                                                    if (a === labels.silver) return -1;
+                                                    if (b === labels.silver) return 1;
                                                 }
+                                                // Parallel groups: sort by the createdAt of their first match
+                                                // (API returns matches createdAt asc, so first element = earliest)
+                                                const aTime = new Date(matchesByGroup[a][0]?.createdAt ?? 0).getTime();
+                                                const bTime = new Date(matchesByGroup[b][0]?.createdAt ?? 0).getTime();
+                                                if (aTime !== bTime) return aTime - bTime;
                                                 return a.localeCompare(b);
                                             })
                                             .map(gName => (
@@ -154,7 +175,7 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                         return (
                                                             <List.Item style={{ border: 'none', padding: '0 0 12px 0' }}>
                                                                 <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
-                                                                    {m.phase === 'FINAL' && (
+                                                                    {m.phase === 'FINAL' && !m.seriesLabel && (
                                                                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
                                                                             {m.bracket === 'SILVER' ? (
                                                                                 Number(m.round) === 2 ? (
@@ -240,8 +261,8 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                             <span><EnvironmentOutlined /> {m.location || 'Local a definir'}</span>
                                                                             <span><ClockCircleOutlined /> {m.dateTime ? dayjs(m.dateTime).format('DD/MM HH:mm') : 'Hora a definir'}</span>
                                                                         </Space>
-                                                                        {championship.status === 'STARTED' && m.phase === currentPhase && user?.role && user.role !== 'USER' && (
-                                                                            <Space>
+                                                                        <Space>
+                                                                            {championship.status === 'STARTED' && m.phase === currentPhase && user?.role && user.role !== 'USER' && (
                                                                                 <Button
                                                                                     size="small"
                                                                                     type="primary"
@@ -250,8 +271,15 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                                     loading={loadingMatchId === m.id}
                                                                                     disabled={loadingMatchId !== null && loadingMatchId !== m.id}
                                                                                 >Editar Jogo</Button>
-                                                                            </Space>
-                                                                        )}
+                                                                            )}
+                                                                            {m.seriesLabel && m.phase === mainSeriesPhase && championship.status !== 'FINISHED' && user?.role && user.role !== 'USER' && onDeleteMatch && (
+                                                                                <Button
+                                                                                    size="small"
+                                                                                    danger
+                                                                                    onClick={() => onDeleteMatch(m)}
+                                                                                >Apagar</Button>
+                                                                            )}
+                                                                        </Space>
                                                                     </div>
                                                                 </Card>
                                                             </List.Item>
@@ -260,6 +288,35 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                 />
                                             </div>
                                         ))}
+
+                                        {/* Parallel matches button — current knockout phase only */}
+                                        {phase !== 'GROUP' && phase !== 'LEAGUE' &&
+                                            phase === mainSeriesPhase &&
+                                            championship.status === 'STARTED' &&
+                                            user?.role && user.role !== 'USER' &&
+                                            onCreateParallelMatches && (() => {
+                                                // Teams that already have at least one match in this phase (main or parallel)
+                                                const takenIds = new Set(
+                                                    (groupedMatches[phase] || []).flatMap((m: any) => [m.homeTeamId, m.awayTeamId])
+                                                );
+                                                const freeCount = (championship.teams || []).filter(
+                                                    (ct: any) => !takenIds.has(ct.teamId)
+                                                ).length;
+                                                return (
+                                                    <div style={{ marginTop: 16, textAlign: 'center' }}>
+                                                        <Button
+                                                            type="dashed"
+                                                            icon={<PlusOutlined />}
+                                                            onClick={() => onCreateParallelMatches(phase)}
+                                                            disabled={freeCount === 0}
+                                                            title={freeCount === 0 ? 'Todos os times já têm jogos nesta fase' : undefined}
+                                                            style={{ width: '100%', maxWidth: 320 }}
+                                                        >
+                                                            Criar jogos paralelos
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            })()}
                                     </div>
                                 )
                             };

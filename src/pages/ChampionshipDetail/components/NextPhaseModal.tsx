@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Space, Typography, Card, Avatar, message, Input, Collapse } from 'antd';
 import { SwapOutlined, CloseOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
-import { Switch, Tabs } from 'antd';
+import { Switch } from 'antd';
 import TeamPicker from './TeamPicker';
 import { trackEvent } from '../../../services/analytics';
 import { getBracketLabels, BracketLabels } from '../../../utils/bracketLabels';
@@ -36,11 +36,9 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
     onSaveLabels,
     confirmLoading
 }) => {
-    const [matchups, setMatchups] = useState<{ homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER'; round?: number }[]>([]);
+    const [matchups, setMatchups] = useState<{ homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD'; round?: number }[]>([]);
     const [selectingSlot, setSelectingSlot] = useState<{ index: number; side: 'home' | 'away' } | null>(null);
-    const [enableSilverBracket, setEnableSilverBracket] = useState(false);
-    const [enableThirdPlaceGold, setEnableThirdPlaceGold] = useState(false);
-    const [enableThirdPlaceSilver, setEnableThirdPlaceSilver] = useState(false);
+    const [enableThirdPlace, setEnableThirdPlace] = useState(false);
 
     const { user } = useAuth();
     const baseLabels = getBracketLabels(championship);
@@ -55,10 +53,9 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
 
     const isTransitionFromGroups =
         championship.format === 'GROUPS_KNOCKOUT' &&
-        preview?.advancingTeams && preview?.advancingTeams.length > 0 &&
+        preview?.advancingTeams &&
+        preview?.advancingTeams.length > 0 &&
         !preview.advancingTeams.some((t: any) => t.bracket);
-
-    const hasSilverPreview = preview?.previewMatches.some((m: any) => m.bracket === 'SILVER') || false;
 
     const getWinnerId = (m: any) => {
         const h = m.homeScore ?? 0;
@@ -72,75 +69,48 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
         return m.homeTeamId;
     };
 
-    const getSemiLosers = (bracket: 'GOLD' | 'SILVER') => {
-        const bSemiMatches = matches.filter(
-            m => m.phase === 'SEMI' && (m.bracket || 'GOLD') === bracket
+    const getSemiLosers = () => {
+        const semiMatches = matches.filter(
+            m => m.phase === 'SEMI' && (!m.bracket || m.bracket === 'GOLD')
         );
-        return bSemiMatches.map(m => {
+        return semiMatches.map(m => {
             const winnerId = getWinnerId(m);
             return m.homeTeamId === winnerId ? m.awayTeamId : m.homeTeamId;
         }).filter(Boolean);
     };
 
-    console.log('[DEBUG NextPhaseModal] championship:', championship);
-    console.log('[DEBUG NextPhaseModal] preview:', preview);
-    console.log('[DEBUG NextPhaseModal] isTransitionFromGroups:', isTransitionFromGroups);
-    console.log('[DEBUG NextPhaseModal] enableSilverBracket:', enableSilverBracket);
-    console.log('[DEBUG NextPhaseModal] hasSilverPreview:', hasSilverPreview);
-
     useEffect(() => {
         if (isOpen && preview) {
-            let silverEnabled = enableSilverBracket;
-
-            if (!isTransitionFromGroups) {
-                silverEnabled = hasSilverPreview;
-                setEnableSilverBracket(silverEnabled);
-            }
-
-            console.log('[DEBUG NextPhaseModal useEffect] silverEnabled:', silverEnabled);
-
-            let newMatchups: any[] = [];
+            let newMatchups: { homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD'; round?: number }[] = [];
 
             if (isTransitionFromGroups) {
-                const goldMatchesCount = preview.previewMatches.length;
-                console.log('[DEBUG NextPhaseModal useEffect] isTransitionFromGroups=true, goldMatchesCount:', goldMatchesCount);
-                // Add Gold slots
+                const goldMatchesCount = preview.previewMatches.filter((m: any) => !m.bracket || m.bracket === 'GOLD').length || preview.previewMatches.length;
                 for (let i = 0; i < goldMatchesCount; i++) {
                     newMatchups.push({ bracket: 'GOLD', round: 1 });
                 }
-                if (enableThirdPlaceGold && preview.nextPhase === 'FINAL') {
+                if (enableThirdPlace && preview.nextPhase === 'FINAL') {
                     newMatchups.push({ bracket: 'GOLD', round: 2 });
                 }
-
-                // Add Silver slots if enabled
-                if (silverEnabled) {
-                    console.log('[DEBUG NextPhaseModal useEffect] Adding silver matchups slots. goldMatchesCount:', goldMatchesCount);
-                    for (let i = 0; i < goldMatchesCount; i++) {
-                        newMatchups.push({ bracket: 'SILVER', round: 1 });
-                    }
-                    if (enableThirdPlaceSilver && preview.nextPhase === 'FINAL') {
-                        newMatchups.push({ bracket: 'SILVER', round: 2 });
-                    }
-                }
             } else {
-                console.log('[DEBUG NextPhaseModal useEffect] isTransitionFromGroups=false. preview.previewMatches:', preview.previewMatches);
-                // Vindo das semifinais: copiamos os jogos da final calculados pelo back-end
-                preview.previewMatches.forEach(m => {
-                    newMatchups.push({
-                        homeTeamId: m.homeTeamId,
-                        awayTeamId: m.awayTeamId,
-                        bracket: m.bracket || 'GOLD',
-                        round: 1,
-                    });
+                // Vindo de semi → final: copia os jogos previstos pelo back-end (apenas GOLD)
+                preview.previewMatches.forEach((m: any) => {
+                    if (!m.bracket || m.bracket === 'GOLD') {
+                        newMatchups.push({
+                            homeTeamId: m.homeTeamId,
+                            awayTeamId: m.awayTeamId,
+                            bracket: 'GOLD',
+                            round: 1,
+                        });
+                    }
                 });
 
-                // Se habilitar disputa do 3º lugar na Ouro e estivermos na FINAL, adicionamos
-                if (enableThirdPlaceGold && preview.nextPhase === 'FINAL') {
-                    const goldLosers = getSemiLosers('GOLD');
-                    if (goldLosers.length >= 2) {
+                // Disputa de 3º lugar (GOLD)
+                if (enableThirdPlace && preview.nextPhase === 'FINAL') {
+                    const losers = getSemiLosers();
+                    if (losers.length >= 2) {
                         newMatchups.push({
-                            homeTeamId: goldLosers[0],
-                            awayTeamId: goldLosers[1],
+                            homeTeamId: losers[0],
+                            awayTeamId: losers[1],
                             bracket: 'GOLD',
                             round: 2,
                         });
@@ -148,82 +118,33 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                         newMatchups.push({ bracket: 'GOLD', round: 2 });
                     }
                 }
-
-                // Se habilitar disputa do 3º lugar na Prata, estivermos na FINAL, e Série Prata estiver habilitada
-                if (enableThirdPlaceSilver && preview.nextPhase === 'FINAL' && silverEnabled) {
-                    const silverLosers = getSemiLosers('SILVER');
-                    if (silverLosers.length >= 2) {
-                        newMatchups.push({
-                            homeTeamId: silverLosers[0],
-                            awayTeamId: silverLosers[1],
-                            bracket: 'SILVER',
-                            round: 2,
-                        });
-                    } else {
-                        newMatchups.push({ bracket: 'SILVER', round: 2 });
-                    }
-                }
             }
 
-            console.log('[DEBUG NextPhaseModal useEffect] Final calculated newMatchups:', newMatchups);
             setMatchups(newMatchups);
         }
-    }, [isOpen, preview, championship, standings, enableSilverBracket, enableThirdPlaceGold, enableThirdPlaceSilver, isTransitionFromGroups, hasSilverPreview]);
+    }, [isOpen, preview, championship, standings, enableThirdPlace, isTransitionFromGroups]);
 
-        const handleApplyShortcut = () => {
+    const handleApplyShortcut = () => {
         if (!preview) return;
         if (standings.length >= 1) {
             const advancingCount = championship.advancingCount || 2;
-            const newMatchups: { homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD' | 'SILVER'; round?: number }[] = [];
+            const newMatchups: { homeTeamId?: string; awayTeamId?: string; bracket: 'GOLD'; round?: number }[] = [];
 
-            if (preview.nextPhase === 'FINAL' && (enableThirdPlaceGold || enableThirdPlaceSilver)) {
+            if (preview.nextPhase === 'FINAL' && enableThirdPlace) {
                 if (standings.length === 1) {
-                    // Caso: Apenas 1 grupo, disputa do 3º lugar
                     const group = standings[0].standings || [];
-                    
-                    // Ouro Final (round 1)
                     newMatchups.push({ homeTeamId: group[0]?.teamId, awayTeamId: group[1]?.teamId, bracket: 'GOLD', round: 1 });
-                    // Ouro 3º Lugar (round 2)
-                    if (enableThirdPlaceGold) {
-                        newMatchups.push({ homeTeamId: group[2]?.teamId, awayTeamId: group[3]?.teamId, bracket: 'GOLD', round: 2 });
-                    }
-                    
-                    if (enableSilverBracket) {
-                        // Prata Final (round 1)
-                        newMatchups.push({ homeTeamId: group[4]?.teamId, awayTeamId: group[5]?.teamId, bracket: 'SILVER', round: 1 });
-                        // Prata 3º Lugar (round 2)
-                        if (enableThirdPlaceSilver) {
-                            newMatchups.push({ homeTeamId: group[6]?.teamId, awayTeamId: group[7]?.teamId, bracket: 'SILVER', round: 2 });
-                        }
-                    }
+                    newMatchups.push({ homeTeamId: group[2]?.teamId, awayTeamId: group[3]?.teamId, bracket: 'GOLD', round: 2 });
                 } else {
-                    // Caso: 2 ou mais grupos, disputa do 3º lugar (Cruzamento entre 1ºs e 2ºs de cada grupo)
                     const groupA = standings[0]?.standings || [];
                     const groupB = standings[1]?.standings || [];
-                    
-                    // Ouro Final (round 1): 1ºA vs 1ºB
                     newMatchups.push({ homeTeamId: groupA[0]?.teamId, awayTeamId: groupB[0]?.teamId, bracket: 'GOLD', round: 1 });
-                    // Ouro 3º Lugar (round 2): 2ºA vs 2ºB
-                    if (enableThirdPlaceGold) {
-                        newMatchups.push({ homeTeamId: groupA[1]?.teamId, awayTeamId: groupB[1]?.teamId, bracket: 'GOLD', round: 2 });
-                    }
-                    
-                    if (enableSilverBracket) {
-                        // Prata Final (round 1): 3ºA vs 3ºB
-                        newMatchups.push({ homeTeamId: groupA[2]?.teamId, awayTeamId: groupB[2]?.teamId, bracket: 'SILVER', round: 1 });
-                        // Prata 3º Lugar (round 2): 4ºA vs 4ºB
-                        if (enableThirdPlaceSilver) {
-                            newMatchups.push({ homeTeamId: groupA[3]?.teamId, awayTeamId: groupB[3]?.teamId, bracket: 'SILVER', round: 2 });
-                        }
-                    }
+                    newMatchups.push({ homeTeamId: groupA[1]?.teamId, awayTeamId: groupB[1]?.teamId, bracket: 'GOLD', round: 2 });
                 }
             } else {
                 if (standings.length === 1) {
-                    // Caso: Apenas 1 grupo
                     const group = standings[0].standings || [];
                     const numMatches = Math.max(1, Math.floor(advancingCount / 2));
-                    
-                    // Ouro
                     for (let i = 0; i < numMatches; i++) {
                         const homeTeam = group[i];
                         const awayTeam = group[advancingCount - 1 - i];
@@ -231,19 +152,7 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                             newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'GOLD', round: 1 });
                         }
                     }
-                    
-                    // Prata
-                    if (enableSilverBracket) {
-                        for (let i = 0; i < numMatches; i++) {
-                            const homeTeam = group[i + advancingCount];
-                            const awayTeam = group[advancingCount - 1 - i + advancingCount];
-                            if (homeTeam || awayTeam) {
-                                newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'SILVER', round: 1 });
-                            }
-                        }
-                    }
                 } else {
-                    // Caso: 2 ou mais grupos (Cruzamento entre pares de grupos)
                     for (let g = 0; g < standings.length; g += 2) {
                         const groupA = standings[g]?.standings || [];
                         const groupB = standings[g + 1]?.standings || [];
@@ -255,53 +164,35 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                             }
                         }
                     }
-
-                    if (enableSilverBracket) {
-                        for (let g = 0; g < standings.length; g += 2) {
-                            const groupA = standings[g]?.standings || [];
-                            const groupB = standings[g + 1]?.standings || [];
-                            for (let i = 0; i < advancingCount; i++) {
-                                const homeTeam = groupA[i + advancingCount];
-                                const awayTeam = groupB[advancingCount - 1 - i + advancingCount];
-                                if (homeTeam || awayTeam) {
-                                    newMatchups.push({ homeTeamId: homeTeam?.teamId, awayTeamId: awayTeam?.teamId, bracket: 'SILVER', round: 1 });
-                                }
-                            }
-                        }
-                    }
                 }
             }
 
             // Pad with empty slots if needed
-            const goldMatchesCount = preview.previewMatches.length;
-            const goldExpected = goldMatchesCount + (enableThirdPlaceGold && preview.nextPhase === 'FINAL' ? 1 : 0);
-            const silverExpected = goldMatchesCount + (enableThirdPlaceSilver && preview.nextPhase === 'FINAL' ? 1 : 0);
-            let expectedLength = goldExpected;
-            if (enableSilverBracket) {
-                expectedLength += silverExpected;
-            }
+            const goldMatchesCount = preview.previewMatches.filter((m: any) => !m.bracket || m.bracket === 'GOLD').length || preview.previewMatches.length;
+            const goldExpected = goldMatchesCount + (enableThirdPlace && preview.nextPhase === 'FINAL' ? 1 : 0);
 
-            while (newMatchups.length < expectedLength) {
-                const goldCount = newMatchups.filter(m => m.bracket === 'GOLD').length;
-                const targetBracket = goldCount < goldExpected ? 'GOLD' : 'SILVER';
-                const round1Count = newMatchups.filter(m => m.bracket === targetBracket && m.round === 1).length;
+            while (newMatchups.length < goldExpected) {
+                const round1Count = newMatchups.filter(m => m.round === 1).length;
                 const round = round1Count < goldMatchesCount ? 1 : 2;
-                newMatchups.push({ bracket: targetBracket, round });
+                newMatchups.push({ bracket: 'GOLD', round });
             }
 
-            setMatchups(newMatchups.slice(0, expectedLength));
+            setMatchups(newMatchups.slice(0, goldExpected));
             message.success('Cruzamento olímpico aplicado!');
         } else {
             setMatchups(
-                preview.previewMatches.map(m => ({
-                    homeTeamId: m.homeTeamId,
-                    awayTeamId: m.awayTeamId,
-                    bracket: m.bracket || 'GOLD',
-                    round: m.round || 1,
-                }))
+                preview.previewMatches
+                    .filter((m: any) => !m.bracket || m.bracket === 'GOLD')
+                    .map((m: any) => ({
+                        homeTeamId: m.homeTeamId,
+                        awayTeamId: m.awayTeamId,
+                        bracket: 'GOLD' as const,
+                        round: m.round || 1,
+                    }))
             );
         }
     };
+
     const handleTeamSelect = (teamIds: string[]) => {
         if (selectingSlot && teamIds.length > 0) {
             const newMatchups = [...matchups];
@@ -331,9 +222,8 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
             message.error('Por favor, defina todos os times para os confrontos.');
             return;
         }
-        trackEvent('next_phase_started', { 
-            championship_id: championship.id, 
-            silver_bracket_enabled: enableSilverBracket 
+        trackEvent('next_phase_started', {
+            championship_id: championship.id,
         });
         onSave(matchups as { homeTeamId: string; awayTeamId: string; bracket: 'GOLD' | 'SILVER'; round?: number }[]);
     };
@@ -359,26 +249,10 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
     let sourceTeams = preview.advancingTeams.map((t: any) => ({ teamId: t.teamId }));
 
     if (selectingSlot !== null) {
-        const slotBracket = matchups[selectingSlot.index]?.bracket || 'GOLD';
-
-        if (isTransitionFromGroups) {
-            if (slotBracket === 'GOLD') {
-                sourceTeams = preview.advancingTeams.map((t: any) => ({ teamId: t.teamId }));
-            } else {
-                const advancingIds = new Set(preview.advancingTeams.map((t: any) => t.teamId));
-                sourceTeams = [];
-                for (const group of standings) {
-                    for (const st of group.standings) {
-                        if (!advancingIds.has(st.teamId)) {
-                            sourceTeams.push({ teamId: st.teamId });
-                        }
-                    }
-                }
-            }
-        } else {
-            const bracketTeams = preview.advancingTeams.filter((t: any) => t.bracket === slotBracket);
-            if (bracketTeams.length > 0) {
-                sourceTeams = bracketTeams.map((t: any) => ({ teamId: t.teamId }));
+        if (!isTransitionFromGroups) {
+            const goldTeams = preview.advancingTeams.filter((t: any) => !t.bracket || t.bracket === 'GOLD');
+            if (goldTeams.length > 0) {
+                sourceTeams = goldTeams.map((t: any) => ({ teamId: t.teamId }));
             }
         }
     }
@@ -390,21 +264,16 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
         })
         .filter(t => !selectedTeamIds.includes(t.id));
 
-    const renderMatchupsList = (bracket: 'GOLD' | 'SILVER') => {
-        const isGold = bracket === 'GOLD';
-        const isThirdPlaceEnabled = isGold ? enableThirdPlaceGold : enableThirdPlaceSilver;
-        const setThirdPlaceEnabled = isGold ? setEnableThirdPlaceGold : setEnableThirdPlaceSilver;
-
+    const renderMatchups = () => {
         return (
             <Space direction="vertical" style={{ width: '100%' }} size={12}>
                 {preview.nextPhase === 'FINAL' && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: 8, marginBottom: 4 }}>
-                        <Text strong>Habilitar {isGold ? draftLabels.thirdPlaceLabel : `Disputa de 3º lugar - ${draftLabels.silver}`}?</Text>
-                        <Switch checked={isThirdPlaceEnabled} onChange={setThirdPlaceEnabled} />
+                        <Text strong>Habilitar {draftLabels.thirdPlaceLabel}?</Text>
+                        <Switch checked={enableThirdPlace} onChange={setEnableThirdPlace} />
                     </div>
                 )}
                 {matchups.map((match, index) => {
-                    if (match.bracket !== bracket) return null;
                     const homeTeam = getTeamInfo(match.homeTeamId);
                     const awayTeam = getTeamInfo(match.awayTeamId);
 
@@ -414,19 +283,15 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                             size="small"
                             styles={{ body: { padding: '10px 12px' } }}
                         >
-                            {/* Match number label */}
                             <Text
                                 type="secondary"
                                 style={{ fontSize: 11, display: 'block', marginBottom: 8 }}
                             >
                                 {preview.nextPhase === 'FINAL'
-                                    ? (match.bracket === 'SILVER'
-                                        ? (Number(match.round) === 2 ? `Disputa de 3º lugar - ${draftLabels.silver}` : `Final ${draftLabels.silver}`)
-                                        : (Number(match.round) === 2 ? draftLabels.thirdPlaceLabel : draftLabels.finalLabel))
+                                    ? (Number(match.round) === 2 ? draftLabels.thirdPlaceLabel : draftLabels.finalLabel)
                                     : `Jogo ${index + 1}`}
                             </Text>
 
-                            {/* Single-row layout: [home] × [away] */}
                             <div
                                 style={{
                                     display: 'grid',
@@ -435,7 +300,6 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                                     gap: 6,
                                 }}
                             >
-                                {/* Home slot */}
                                 <TeamSlot
                                     team={homeTeam}
                                     label="Mandante"
@@ -449,7 +313,6 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                                     }}
                                 />
 
-                                {/* VS divider */}
                                 <div
                                     style={{
                                         textAlign: 'center',
@@ -462,7 +325,6 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                                     ×
                                 </div>
 
-                                {/* Away slot */}
                                 <TeamSlot
                                     team={awayTeam}
                                     label="Visitante"
@@ -493,7 +355,6 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                     setSelectingSlot(null);
                     onClose();
                 }}
-                // 100vw on mobile, capped at 800px on desktop
                 width="min(800px, 100vw)"
                 style={{ top: 16 }}
                 styles={{
@@ -512,15 +373,6 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                 ]}
             >
                 <Space direction="vertical" style={{ width: '100%' }} size={12}>
-                    {isTransitionFromGroups && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: 8 }}>
-                            <Text strong>Habilitar {draftLabels.silver} (Consolação)?</Text>
-                            <Switch checked={enableSilverBracket} onChange={setEnableSilverBracket} />
-                        </div>
-                    )}
-
-                    {/* O switch global foi movido para dentro de cada aba em renderMatchupsList */}
-
                     {/* Shortcut banner - Only show when transitioning from Groups */}
                     {isTransitionFromGroups && (
                         <div
@@ -545,19 +397,9 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                     )}
 
                     {/* Matchup list */}
-                    {enableSilverBracket ? (
-                        <Tabs
-                            defaultActiveKey="GOLD"
-                            items={[
-                                { key: 'GOLD', label: draftLabels.gold, children: renderMatchupsList('GOLD') },
-                                { key: 'SILVER', label: draftLabels.silver, children: renderMatchupsList('SILVER') }
-                            ]}
-                        />
-                    ) : (
-                        renderMatchupsList('GOLD')
-                    )}
+                    {renderMatchups()}
 
-                    {/* Admin-only: Renomear séries */}
+                    {/* Admin-only: Renomear rótulos */}
                     {user?.role === 'ADMIN' && onSaveLabels && (
                         <Collapse
                             ghost
@@ -567,13 +409,13 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                                 label: (
                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                         <EditOutlined style={{ marginRight: 6 }} />
-                                        Renomear séries
+                                        Renomear rótulos
                                     </Text>
                                 ),
                                 children: (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
                                         <div>
-                                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Nome da Série Principal (Ouro)</Text>
+                                            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Nome da Série Principal</Text>
                                             <Input
                                                 size="small"
                                                 placeholder="Série Ouro"
@@ -581,17 +423,6 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                                                 onChange={e => { setDraftLabels(p => ({ ...p, gold: e.target.value })); setLabelsDirty(true); }}
                                             />
                                         </div>
-                                        {enableSilverBracket && (
-                                            <div>
-                                                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Nome da Série Consolação (Prata)</Text>
-                                                <Input
-                                                    size="small"
-                                                    placeholder="Série Prata"
-                                                    value={draftLabels.silver}
-                                                    onChange={e => { setDraftLabels(p => ({ ...p, silver: e.target.value })); setLabelsDirty(true); }}
-                                                />
-                                            </div>
-                                        )}
                                         <div>
                                             <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Rótulo da Grande Final</Text>
                                             <Input
@@ -644,15 +475,9 @@ const NextPhaseModal: React.FC<NextPhaseModalProps> = ({
                     const match = matchups[selectingSlot.index];
                     let matchLabel = `Jogo ${selectingSlot.index + 1}`;
                     if (preview.nextPhase === 'FINAL' && match) {
-                        if (match.bracket === 'SILVER') {
-                            matchLabel = Number(match.round) === 2 
-                                ? `Disputa de 3º lugar - ${draftLabels.silver}` 
-                                : `Final ${draftLabels.silver}`;
-                        } else {
-                            matchLabel = Number(match.round) === 2 
-                                ? draftLabels.thirdPlaceLabel 
-                                : draftLabels.finalLabel;
-                        }
+                        matchLabel = Number(match.round) === 2
+                            ? draftLabels.thirdPlaceLabel
+                            : draftLabels.finalLabel;
                     }
                     return `Selecione o time — ${sideText} · ${matchLabel}`;
                 })()}
@@ -730,7 +555,6 @@ const TeamSlot: React.FC<TeamSlotProps> = ({ team, label, align, onClick, onClea
                         <CloseOutlined />
                     </button>
 
-                    {/* Avatar + name stacked vertically — no risk of overflow */}
                     <Avatar
                         src={team!.logoUrl || undefined}
                         icon={!team!.logoUrl ? <UserOutlined /> : undefined}

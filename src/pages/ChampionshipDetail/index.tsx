@@ -40,6 +40,7 @@ import ScorersTab from './components/ScorersTab';
 import MatchResultModal from './components/MatchResultModal';
 import TeamPicker from './components/TeamPicker';
 import NextPhaseModal from './components/NextPhaseModal';
+import CreateParallelMatchesModal from './components/CreateParallelMatchesModal';
 
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -74,6 +75,8 @@ const ChampionshipDetailPage: React.FC = () => {
     const [isManualMatchModalOpen, setIsManualMatchModalOpen] = useState(false);
     const [isNextPhaseModalOpen, setIsNextPhaseModalOpen] = useState(false);
     const [isRenameLabelsModalOpen, setIsRenameLabelsModalOpen] = useState(false);
+    const [isParallelMatchesModalOpen, setIsParallelMatchesModalOpen] = useState(false);
+    const [parallelMatchesPhase, setParallelMatchesPhase] = useState('SEMI');
     const [nextPhasePreview, setNextPhasePreview] = useState<any>(null);
     const [selectedMatch, setSelectedMatch] = useState<any>(null);
     const [selectedGroup, setSelectedGroup] = useState<any>(null);
@@ -149,14 +152,16 @@ const ChampionshipDetailPage: React.FC = () => {
         if (matches.length === 0 || initializedRef.current === id) return;
 
         const phaseOrder = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
-        const existingPhases = [...new Set(matches.map((m: any) => m.phase || 'GROUP'))];
+        // Exclude parallel matches so they don't affect phase/round navigation
+        const mainMatches = matches.filter((m: any) => !m.seriesLabel);
+        const existingPhases = [...new Set(mainMatches.map((m: any) => m.phase || 'GROUP'))];
         const sortedPhases = existingPhases.sort((a: any, b: any) => phaseOrder.indexOf(a) - phaseOrder.indexOf(b)) as string[];
 
         let targetPhase = sortedPhases[0];
         let targetRound = 1;
 
         for (const phase of sortedPhases) {
-            const pMatches = matches.filter((m: any) => (m.phase || 'GROUP') === phase);
+            const pMatches = mainMatches.filter((m: any) => (m.phase || 'GROUP') === phase);
             
             // Encontra todos os jogos incompletos da fase
             const incompleteMatches = pMatches.filter((m: any) => m.status !== 'FINISHED');
@@ -286,7 +291,65 @@ const ChampionshipDetailPage: React.FC = () => {
         }
     };
 
+    const handleCreateParallelMatches = async (
+        seriesLabel: string,
+        matchupList: { homeTeamId: string; awayTeamId: string }[],
+        phase: string
+    ) => {
+        setSubmitting(true);
+        const hide = message.loading('Criando jogos paralelos...', 0);
+        try {
+            await Promise.all(
+                matchupList.map(m =>
+                    api.post('/matches', {
+                        championshipId: id,
+                        homeTeamId: m.homeTeamId,
+                        awayTeamId: m.awayTeamId,
+                        phase,
+                        seriesLabel,
+                        bracket: null,
+                        round: 1,
+                    })
+                )
+            );
+            hide();
+            message.success(`${matchupList.length} jogo(s) paralelo(s) criado(s)!`);
+            setIsParallelMatchesModalOpen(false);
+            await fetchMatches(id!);
+        } catch (err) {
+            console.error(err);
+            hide();
+            message.error('Erro ao criar jogos paralelos');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteMatch = (match: any) => {
+        Modal.confirm({
+            title: 'Apagar jogo',
+            content: `Tem certeza que deseja apagar o jogo "${match.homeTeam?.name} × ${match.awayTeam?.name}"? Esta ação não pode ser desfeita.`,
+            okText: 'Sim, apagar',
+            cancelText: 'Cancelar',
+            okType: 'danger',
+            onOk: async () => {
+                const hide = message.loading('Apagando jogo...', 0);
+                try {
+                    await api.delete(`/matches/${match.id}`);
+                    hide();
+                    message.success('Jogo apagado!');
+                    await fetchMatches(id!);
+                } catch (err) {
+                    console.error(err);
+                    hide();
+                    message.error('Erro ao apagar jogo');
+                }
+            }
+        });
+    };
+
     const handleFinalize = async () => {
+
         setSubmitting(true);
         const hide = message.loading('Iniciando campeonato...', 0);
         try {
@@ -344,7 +407,6 @@ const ChampionshipDetailPage: React.FC = () => {
     const handleSaveLabelsFromModal = async (values: any) => {
         await handleSaveLabels({
             GOLD: values.gold,
-            SILVER: values.silver,
             finalLabel: values.finalLabel,
             thirdPlaceLabel: values.thirdPlaceLabel,
         });
@@ -587,6 +649,16 @@ const ChampionshipDetailPage: React.FC = () => {
         }, {});
     }, [matches]);
 
+    // The most advanced phase considering only main-series matches (no seriesLabel)
+    const currentPhase = React.useMemo(() => {
+        const phaseOrder = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
+        const mainMatches = matches.filter((m: any) => !m.seriesLabel);
+        return mainMatches.reduce((latest: string, m: any) => {
+            const p = m.phase || 'GROUP';
+            return phaseOrder.indexOf(p) > phaseOrder.indexOf(latest) ? p : latest;
+        }, 'GROUP');
+    }, [matches]);
+
     if (loading) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
             <Spin size="large">
@@ -608,12 +680,14 @@ const ChampionshipDetailPage: React.FC = () => {
             canFinishChampionship = championship.status !== 'FINISHED' && matches.length > 0 && matches.every(m => m.status === 'FINISHED');
         } else {
             const phaseOrder = ['GROUP', 'LEAGUE', 'ROUND_16', 'QUARTER', 'SEMI', 'FINAL'];
-            const currentPhase = matches.reduce((latest: string, m: any) => {
+            // Exclude parallel matches (seriesLabel) — they are friendlies and must not affect phase logic
+            const mainMatches = matches.filter((m: any) => !m.seriesLabel);
+            const currentPhase = mainMatches.reduce((latest: string, m: any) => {
                 const p = m.phase || 'GROUP';
                 return phaseOrder.indexOf(p) > phaseOrder.indexOf(latest) ? p : latest;
             }, 'GROUP');
-            const phaseMatches = matches.filter(m => m.phase === currentPhase);
-            const allPhaseFinished = phaseMatches.length > 0 && phaseMatches.every(m => m.status === 'FINISHED');
+            const phaseMatches = mainMatches.filter((m: any) => m.phase === currentPhase);
+            const allPhaseFinished = phaseMatches.length > 0 && phaseMatches.every((m: any) => m.status === 'FINISHED');
 
             if (allPhaseFinished && championship.status !== 'FINISHED') {
                 if (currentPhase === 'FINAL' || (currentPhase === 'GROUP' && championship.advancingCount === 0)) {
@@ -934,7 +1008,6 @@ const ChampionshipDetailPage: React.FC = () => {
                                 const current = getBracketLabels(championship);
                                 renameLabelsForm.setFieldsValue({
                                     gold: current.gold,
-                                    silver: current.silver,
                                     finalLabel: current.finalLabel,
                                     thirdPlaceLabel: current.thirdPlaceLabel,
                                 });
@@ -1013,8 +1086,14 @@ const ChampionshipDetailPage: React.FC = () => {
                                     currentRound={currentRound}
                                     setCurrentRound={setCurrentRound}
                                     championship={championship}
+                                    mainSeriesPhase={currentPhase}
                                     onOpenEditModal={handleOpenResultModal}
                                     onOpenManualMatchModal={() => setIsManualMatchModalOpen(true)}
+                                    onCreateParallelMatches={(phase) => {
+                                        setParallelMatchesPhase(phase);
+                                        setIsParallelMatchesModalOpen(true);
+                                    }}
+                                    onDeleteMatch={handleDeleteMatch}
                                     loadingMatchId={loadingMatchId}
                                 />
                             )
@@ -1213,9 +1292,20 @@ const ChampionshipDetailPage: React.FC = () => {
                 />
             )}
 
-            {/* Modal de Renomear Séries (ADMIN, STARTED/FINISHED) */}
+            <CreateParallelMatchesModal
+                isOpen={isParallelMatchesModalOpen}
+                onClose={() => setIsParallelMatchesModalOpen(false)}
+                championship={championship}
+                matches={matches}
+                activePhase={parallelMatchesPhase}
+                onSave={handleCreateParallelMatches}
+                confirmLoading={submitting}
+            />
+
+
+            {/* Modal de Renomear Rótulos (ADMIN, STARTED/FINISHED) */}
             <Modal
-                title={<><EditOutlined style={{ marginRight: 8 }} />Renomear Séries</>}
+                title={<><EditOutlined style={{ marginRight: 8 }} />Renomear Rótulos</>}
                 open={isRenameLabelsModalOpen}
                 onCancel={() => {
                     if (submitting) return;
@@ -1237,9 +1327,6 @@ const ChampionshipDetailPage: React.FC = () => {
                 >
                     <Form.Item name="gold" label="Nome da Série Principal">
                         <Input placeholder="Série Ouro" />
-                    </Form.Item>
-                    <Form.Item name="silver" label="Nome da Série Consolação">
-                        <Input placeholder="Série Prata" />
                     </Form.Item>
                     <Form.Item name="finalLabel" label="Rótulo da Grande Final">
                         <Input placeholder="Grande Final" />

@@ -111,20 +111,10 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                                 onClick={onRenameSeries}
                                 disabled={loading}
                             >
-                                Renomear Séries
+                                Renomear Rótulos
                             </Button>
                         )}
                     </Space>
-                )}
-
-                {championship.status === 'FINISHED' && user?.role === 'ADMIN' && onRenameSeries && (
-                    <Button
-                        icon={<EditOutlined />}
-                        onClick={onRenameSeries}
-                        disabled={loading}
-                    >
-                        Renomear Séries
-                    </Button>
                 )}
 
                 {canStartNextPhase && nextPhaseName && championship.status !== 'FINISHED' && (
