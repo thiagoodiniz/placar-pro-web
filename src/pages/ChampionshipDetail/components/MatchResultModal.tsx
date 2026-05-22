@@ -335,34 +335,27 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
 
                 {match?.phase && match?.phase !== 'GROUP' && homeScore === awayScore && homeScore !== undefined && homeScore !== null && (
                     <div style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarning}50`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                        <Text strong style={{ color: '#fa8c16' }}>Empate! Resultado dos Pênaltis:</Text>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12 }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.homeTeam?.name}</div>
-                                <Form.Item 
-                                    name="homePenalties" 
-                                    rules={[{ required: true, message: '' }, ({ getFieldValue }) => ({
-                                        validator(_, value) {
-                                            if (value !== undefined && value !== null && value === getFieldValue('awayPenalties')) return Promise.reject(new Error('Empate não permitido'));
-                                            return Promise.resolve();
-                                        },
-                                    })]}
-                                >
+                        <Text strong style={{ color: '#fa8c16', display: 'block', textAlign: 'center', marginBottom: 12 }}>Empate! Resultado dos Pênaltis:</Text>
+                        <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            gap: 12
+                        }}>
+                            <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {match?.homeTeam?.name}
+                                </div>
+                                <Form.Item name="homePenalties" noStyle>
                                     <StepperInput />
                                 </Form.Item>
                             </div>
-                            <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: -24 }}>x</div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.awayTeam?.name}</div>
-                                <Form.Item 
-                                    name="awayPenalties"
-                                    rules={[{ required: true, message: '' }, ({ getFieldValue }) => ({
-                                        validator(_, value) {
-                                            if (value !== undefined && value !== null && value === getFieldValue('homePenalties')) return Promise.reject(new Error('Empate não permitido'));
-                                            return Promise.resolve();
-                                        },
-                                    })]}
-                                >
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: token.colorTextSecondary, paddingTop: 20 }}>
+                                ×
+                            </div>
+                            <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {match?.awayTeam?.name}
+                                </div>
+                                <Form.Item name="awayPenalties" noStyle>
                                     <StepperInput />
                                 </Form.Item>
                             </div>

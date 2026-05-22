@@ -241,6 +241,15 @@ const ChampionshipDetailPage: React.FC = () => {
     };
 
     const handleSaveResult = async (values: any) => {
+        if (values.homeScore !== undefined && values.homeScore !== null && values.homeScore === values.awayScore && selectedMatch?.phase && selectedMatch?.phase !== 'GROUP') {
+            values.homePenalties = values.homePenalties ?? 0;
+            values.awayPenalties = values.awayPenalties ?? 0;
+            if (values.homePenalties === values.awayPenalties) {
+                message.error('Desempate nos pênaltis é obrigatório!');
+                return;
+            }
+        }
+
         setSubmitting(true);
         const hide = message.loading('Salvando jogo...', 0);
         try {
