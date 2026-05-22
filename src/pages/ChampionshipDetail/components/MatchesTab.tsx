@@ -172,6 +172,17 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                         const homeScorers = getScorerSummary(m.homeTeamId);
                                                         const awayScorers = getScorerSummary(m.awayTeamId);
 
+                                                        let homeWon = false;
+                                                        let awayWon = false;
+                                                        if (m.status === 'FINISHED') {
+                                                            if (m.homeScore > m.awayScore) homeWon = true;
+                                                            else if (m.awayScore > m.homeScore) awayWon = true;
+                                                            else if (m.homePenalties != null && m.awayPenalties != null) {
+                                                                if (m.homePenalties > m.awayPenalties) homeWon = true;
+                                                                else if (m.awayPenalties > m.homePenalties) awayWon = true;
+                                                            }
+                                                        }
+
                                                         return (
                                                             <List.Item style={{ border: 'none', padding: '0 0 12px 0' }}>
                                                                 <Card size="small" style={{ width: '100%', borderRadius: token.borderRadiusLG }} styles={{ body: { padding: '14px 16px' } }}>
@@ -192,64 +203,87 @@ const MatchesTab: React.FC<MatchesTabProps> = ({
                                                                             )}
                                                                         </div>
                                                                     )}
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (homeScorers.length > 0 || awayScorers.length > 0) ? 4 : 10 }}>
-                                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'right', paddingRight: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name || 'A definir'}</Text>
-                                                                            <Avatar
-                                                                                size="small"
-                                                                                src={m.homeTeam?.logoUrl ? <img src={m.homeTeam.logoUrl} alt={m.homeTeam.name} referrerPolicy="no-referrer" /> : undefined}
-                                                                                style={{
-                                                                                    backgroundColor: m.homeTeam?.primaryColor || token.colorFillSecondary,
-                                                                                    color: m.homeTeam?.secondaryColor || '#fff',
-                                                                                    flexShrink: 0,
-                                                                                    border: m.homeTeam?.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`
-                                                                                }}
-                                                                            >
-                                                                                {!m.homeTeam?.logoUrl && (m.homeTeam?.name?.[0]?.toUpperCase() || '?')}
-                                                                            </Avatar>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 4 }}>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 16 }}>
+                                                                                <Avatar
+                                                                                    size="small"
+                                                                                    src={m.homeTeam?.logoUrl ? <img src={m.homeTeam.logoUrl} alt={m.homeTeam.name} referrerPolicy="no-referrer" /> : undefined}
+                                                                                    style={{
+                                                                                        backgroundColor: m.homeTeam?.primaryColor || token.colorFillSecondary,
+                                                                                        color: m.homeTeam?.secondaryColor || '#fff',
+                                                                                        flexShrink: 0,
+                                                                                        border: m.homeTeam?.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                                                                                        opacity: m.status === 'FINISHED' && awayWon ? 0.5 : 1
+                                                                                    }}
+                                                                                >
+                                                                                    {!m.homeTeam?.logoUrl && (m.homeTeam?.name?.[0]?.toUpperCase() || '?')}
+                                                                                </Avatar>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                                                                                    <Text strong style={{ 
+                                                                                        fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                                                        color: m.status === 'FINISHED' ? (homeWon ? token.colorTextBase : (awayWon ? token.colorTextTertiary : token.colorTextBase)) : token.colorTextBase
+                                                                                    }}>
+                                                                                        {m.homeTeam?.name || 'A definir'}
+                                                                                    </Text>
+                                                                                    {homeScorers.length > 0 && (
+                                                                                        <Text style={{ fontSize: 11, color: token.colorTextSecondary, lineHeight: 1.3, marginTop: 2 }}>
+                                                                                            {homeScorers.join(', ')}
+                                                                                        </Text>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div style={{
+                                                                                minWidth: 40, textAlign: 'right',
+                                                                                fontWeight: 700, fontSize: 18,
+                                                                                color: m.status === 'FINISHED' ? token.colorTextBase : token.colorTextSecondary,
+                                                                            }}>
+                                                                                {m.status === 'FINISHED'
+                                                                                    ? (m.homePenalties != null ? <span style={{ color: homeWon ? token.colorSuccess : token.colorTextSecondary }}>{m.homeScore} <small style={{ fontSize: 12, fontWeight: 'normal' }}>({m.homePenalties})</small></span> : m.homeScore)
+                                                                                    : '-'}
+                                                                            </div>
                                                                         </div>
-                                                                        <div style={{
-                                                                            minWidth: 80, textAlign: 'center',
-                                                                            background: m.status === 'FINISHED' ? token.colorFillSecondary : token.colorFillQuaternary,
-                                                                            padding: '5px 14px', borderRadius: 8,
-                                                                            fontWeight: 700, fontSize: 18,
-                                                                            color: m.status === 'FINISHED' ? token.colorTextBase : token.colorTextSecondary,
-                                                                            letterSpacing: '0.05em',
-                                                                            flexShrink: 0
-                                                                        }}>
-                                                                            {m.status === 'FINISHED'
-                                                                                ? (m.homePenalties != null && m.awayPenalties != null
-                                                                                    ? `${m.homeScore}(${m.homePenalties}) × ${m.awayScore}(${m.awayPenalties})`
-                                                                                    : `${m.homeScore} × ${m.awayScore}`)
-                                                                                : 'vs'}
-                                                                        </div>
-                                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left', paddingLeft: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
-                                                                            <Avatar
-                                                                                size="small"
-                                                                                src={m.awayTeam?.logoUrl ? <img src={m.awayTeam.logoUrl} alt={m.awayTeam.name} referrerPolicy="no-referrer" /> : undefined}
-                                                                                style={{
-                                                                                    backgroundColor: m.awayTeam?.primaryColor || token.colorFillSecondary,
-                                                                                    color: m.awayTeam?.secondaryColor || '#fff',
-                                                                                    flexShrink: 0,
-                                                                                    border: m.awayTeam?.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`
-                                                                                }}
-                                                                            >
-                                                                                {!m.awayTeam?.logoUrl && (m.awayTeam?.name?.[0]?.toUpperCase() || '?')}
-                                                                            </Avatar>
-                                                                            <Text strong style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.awayTeam?.name || 'A definir'}</Text>
+                                                                        
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 16 }}>
+                                                                                <Avatar
+                                                                                    size="small"
+                                                                                    src={m.awayTeam?.logoUrl ? <img src={m.awayTeam.logoUrl} alt={m.awayTeam.name} referrerPolicy="no-referrer" /> : undefined}
+                                                                                    style={{
+                                                                                        backgroundColor: m.awayTeam?.primaryColor || token.colorFillSecondary,
+                                                                                        color: m.awayTeam?.secondaryColor || '#fff',
+                                                                                        flexShrink: 0,
+                                                                                        border: m.awayTeam?.logoUrl ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                                                                                        opacity: m.status === 'FINISHED' && homeWon ? 0.5 : 1
+                                                                                    }}
+                                                                                >
+                                                                                    {!m.awayTeam?.logoUrl && (m.awayTeam?.name?.[0]?.toUpperCase() || '?')}
+                                                                                </Avatar>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                                                                                    <Text strong style={{ 
+                                                                                        fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                                                        color: m.status === 'FINISHED' ? (awayWon ? token.colorTextBase : (homeWon ? token.colorTextTertiary : token.colorTextBase)) : token.colorTextBase
+                                                                                    }}>
+                                                                                        {m.awayTeam?.name || 'A definir'}
+                                                                                    </Text>
+                                                                                    {awayScorers.length > 0 && (
+                                                                                        <Text style={{ fontSize: 11, color: token.colorTextSecondary, lineHeight: 1.3, marginTop: 2 }}>
+                                                                                            {awayScorers.join(', ')}
+                                                                                        </Text>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div style={{
+                                                                                minWidth: 40, textAlign: 'right',
+                                                                                fontWeight: 700, fontSize: 18,
+                                                                                color: m.status === 'FINISHED' ? token.colorTextBase : token.colorTextSecondary,
+                                                                            }}>
+                                                                                {m.status === 'FINISHED'
+                                                                                    ? (m.awayPenalties != null ? <span style={{ color: awayWon ? token.colorSuccess : token.colorTextSecondary }}>{m.awayScore} <small style={{ fontSize: 12, fontWeight: 'normal' }}>({m.awayPenalties})</small></span> : m.awayScore)
+                                                                                    : '-'}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-
-                                                                    {(homeScorers.length > 0 || awayScorers.length > 0) && (
-                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                                                                            <div style={{ flex: 1, textAlign: 'right', paddingRight: 50, color: token.colorTextSecondary, fontSize: 11 }}>
-                                                                                {homeScorers.map(s => <div key={s}>{s}</div>)}
-                                                                            </div>
-                                                                            <div style={{ flex: 1, textAlign: 'left', paddingLeft: 50, color: token.colorTextSecondary, fontSize: 11 }}>
-                                                                                {awayScorers.map(s => <div key={s}>{s}</div>)}
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
 
                                                                     <div style={{
                                                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
