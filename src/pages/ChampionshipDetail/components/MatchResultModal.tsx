@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Row, Col, Typography, InputNumber, Divider, Select, List, Button, theme, Tabs, Input, DatePicker, Checkbox, Collapse, message, Spin } from 'antd';
-import { DeleteOutlined, EnvironmentOutlined, PlusOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Modal, Form, Typography, Button, theme, Tabs, Input, DatePicker, Checkbox, Collapse, message, Spin, Alert } from 'antd';
+import { EnvironmentOutlined, PlusOutlined, LoadingOutlined, MinusOutlined } from '@ant-design/icons';
 import PlayerModal from '../../TeamDetail/components/PlayerModal';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
@@ -107,6 +107,8 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
     const handleFormFinish = (values: any) => {
         onFinish({
             ...values,
+            homeScore: values.homeScore ?? 0,
+            awayScore: values.awayScore ?? 0,
             presences: presentPlayerIds
         });
     };
@@ -244,133 +246,205 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
         );
     };
 
-    const renderScoreTab = () => (
-        <div style={{ marginTop: 16 }}>
-            <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginBottom: 20, background: token.colorFillQuaternary,
-                padding: '20px 16px', borderRadius: 12,
-                gap: 12
-            }}>
-                <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
-                    <Title level={5} style={{ margin: '0 0 12px', fontSize: 14, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.2 }}>
-                        {match?.homeTeam?.name}
-                    </Title>
-                    <Form.Item name="homeScore" noStyle>
-                        <InputNumber min={0} size="large" style={{ width: '100%', maxWidth: 70 }} placeholder="-" />
-                    </Form.Item>
+    const StepperInput = ({ value, onChange }: { value?: number, onChange?: (v: number) => void }) => {
+        const val = value || 0;
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                <Button 
+                    shape="circle" 
+                    icon={<MinusOutlined />} 
+                    onClick={() => onChange?.(Math.max(0, val - 1))} 
+                    size="large"
+                />
+                <div style={{ fontSize: 28, fontWeight: 'bold', width: 40, textAlign: 'center', lineHeight: 1 }}>
+                    {val}
                 </div>
-
-                <div style={{ fontSize: '22px', fontWeight: 700, color: token.colorTextSecondary, paddingTop: 40 }}>
-                    ×
-                </div>
-
-                <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
-                    <Title level={5} style={{ margin: '0 0 12px', fontSize: 14, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.2 }}>
-                        {match?.awayTeam?.name}
-                    </Title>
-                    <Form.Item name="awayScore" noStyle>
-                        <InputNumber min={0} size="large" style={{ width: '100%', maxWidth: 70 }} placeholder="-" />
-                    </Form.Item>
-                </div>
+                <Button 
+                    shape="circle" 
+                    icon={<PlusOutlined />} 
+                    onClick={() => onChange?.(val + 1)} 
+                    size="large"
+                />
             </div>
+        );
+    };
 
-            {match?.phase && match?.phase !== 'GROUP' && homeScore === awayScore && homeScore !== undefined && homeScore !== null && (
-                <div style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarning}50`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                    <Text strong style={{ color: '#fa8c16' }}>Empate! Resultado dos Pênaltis:</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12 }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.homeTeam?.name}</div>
-                            <Form.Item 
-                                name="homePenalties" 
-                                rules={[{ required: true, message: '' }, ({ getFieldValue }) => ({
-                                    validator(_, value) {
-                                        if (value !== undefined && value !== null && value === getFieldValue('awayPenalties')) return Promise.reject(new Error('Empate não permitido'));
-                                        return Promise.resolve();
-                                    },
-                                })]}
-                            >
-                                <InputNumber min={0} size="large" style={{ width: 80 }} />
-                            </Form.Item>
-                        </div>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: -24 }}>x</div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.awayTeam?.name}</div>
-                            <Form.Item 
-                                name="awayPenalties"
-                                rules={[{ required: true, message: '' }, ({ getFieldValue }) => ({
-                                    validator(_, value) {
-                                        if (value !== undefined && value !== null && value === getFieldValue('homePenalties')) return Promise.reject(new Error('Empate não permitido'));
-                                        return Promise.resolve();
-                                    },
-                                })]}
-                            >
-                                <InputNumber min={0} size="large" style={{ width: 80 }} />
-                            </Form.Item>
-                        </div>
+    const handleGoalChange = (player: any, newCount: number) => {
+        const pGoals = matchGoals.filter(g => g.playerId === player.id);
+        const currentCount = pGoals.length;
+        
+        if (newCount > currentCount) {
+            for (let i = 0; i < newCount - currentCount; i++) {
+                onAddGoal(player);
+            }
+        } else if (newCount < currentCount) {
+            const goalsToRemove = currentCount - newCount;
+            for (let i = 0; i < goalsToRemove; i++) {
+                onRemoveGoal(pGoals[i].id);
+            }
+        }
+    };
+
+    const renderScoreTab = () => {
+        const assignedHome = matchGoals.filter(g => g.teamId === match?.homeTeamId).length;
+        const assignedAway = matchGoals.filter(g => g.teamId === match?.awayTeamId).length;
+        const unassignedHome = Math.max(0, (homeScore || 0) - assignedHome);
+        const unassignedAway = Math.max(0, (awayScore || 0) - assignedAway);
+
+        const homePlayers = players
+            .filter(p => p.teamId === match?.homeTeamId && presentPlayerIds.includes(p.id))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        homePlayers.push({ id: `own-goal-${match?.homeTeamId}`, name: 'Gol contra', teamId: match?.homeTeamId, teamName: match?.homeTeam?.name });
+
+        const awayPlayers = players
+            .filter(p => p.teamId === match?.awayTeamId && presentPlayerIds.includes(p.id))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        awayPlayers.push({ id: `own-goal-${match?.awayTeamId}`, name: 'Gol contra', teamId: match?.awayTeamId, teamName: match?.awayTeam?.name });
+
+        return (
+            <div style={{ marginTop: 16 }}>
+
+                <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginBottom: 20, background: token.colorFillQuaternary,
+                    padding: '20px 16px', borderRadius: 12,
+                    gap: 12
+                }}>
+                    <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+                        <Title level={5} style={{ margin: '0 0 12px', fontSize: 14, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.2 }}>
+                            {match?.homeTeam?.name}
+                        </Title>
+                        <Form.Item name="homeScore" noStyle>
+                            <StepperInput />
+                        </Form.Item>
+                    </div>
+
+                    <div style={{ fontSize: '22px', fontWeight: 700, color: token.colorTextSecondary, paddingTop: 30 }}>
+                        ×
+                    </div>
+
+                    <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+                        <Title level={5} style={{ margin: '0 0 12px', fontSize: 14, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.2 }}>
+                            {match?.awayTeam?.name}
+                        </Title>
+                        <Form.Item name="awayScore" noStyle>
+                            <StepperInput />
+                        </Form.Item>
                     </div>
                 </div>
-            )}
 
-            <Row gutter={[24, 24]}>
-                <Col xs={24} sm={12}>
-                    <Divider orientation="left" style={{ fontSize: '14px', margin: '0 0 12px' }}>Gols: {match?.homeTeam?.name}</Divider>
-                    <Select
-                        showSearch
-                        style={{ width: '100%', marginBottom: 12 }}
-                        placeholder="Add gol..."
-                        disabled={matchGoals.filter(g => g.teamId === match?.homeTeamId).length >= (homeScore || 0)}
-                        onChange={(_, opt: any) => onAddGoal(opt.player)}
-                        value={null}
-                    >
-                        {players.filter(p => p.teamId === match?.homeTeamId && presentPlayerIds.includes(p.id)).map(p => (
-                            <Select.Option key={p.id} value={p.id} player={p}>{p.name}</Select.Option>
-                        ))}
-                    </Select>
-                    <div style={{ maxHeight: 200, overflowY: 'auto', border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8 }}>
-                        <List
-                            size="small"
-                            dataSource={matchGoals.filter(g => g.teamId === match?.homeTeamId)}
-                            renderItem={g => (
-                                <List.Item actions={[<Button type="text" danger icon={<DeleteOutlined />} onClick={() => onRemoveGoal(g.id)} />]} style={{ padding: '4px 12px' }}>
-                                    <Text ellipsis style={{ maxWidth: '100%' }}>{g.playerName}</Text>
-                                </List.Item>
-                            )}
-                            locale={{ emptyText: <Text type="secondary" style={{ fontSize: 12 }}>Nenhum gol</Text> }}
-                        />
+                {match?.phase && match?.phase !== 'GROUP' && homeScore === awayScore && homeScore !== undefined && homeScore !== null && (
+                    <div style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarning}50`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                        <Text strong style={{ color: '#fa8c16' }}>Empate! Resultado dos Pênaltis:</Text>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.homeTeam?.name}</div>
+                                <Form.Item 
+                                    name="homePenalties" 
+                                    rules={[{ required: true, message: '' }, ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            if (value !== undefined && value !== null && value === getFieldValue('awayPenalties')) return Promise.reject(new Error('Empate não permitido'));
+                                            return Promise.resolve();
+                                        },
+                                    })]}
+                                >
+                                    <StepperInput />
+                                </Form.Item>
+                            </div>
+                            <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: -24 }}>x</div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>{match?.awayTeam?.name}</div>
+                                <Form.Item 
+                                    name="awayPenalties"
+                                    rules={[{ required: true, message: '' }, ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            if (value !== undefined && value !== null && value === getFieldValue('homePenalties')) return Promise.reject(new Error('Empate não permitido'));
+                                            return Promise.resolve();
+                                        },
+                                    })]}
+                                >
+                                    <StepperInput />
+                                </Form.Item>
+                            </div>
+                        </div>
                     </div>
-                </Col>
+                )}
 
-                <Col xs={24} sm={12}>
-                    <Divider orientation="left" style={{ fontSize: '14px', margin: '0 0 12px' }}>Gols: {match?.awayTeam?.name}</Divider>
-                    <Select
-                        showSearch
-                        style={{ width: '100%', marginBottom: 12 }}
-                        placeholder="Add gol..."
-                        disabled={matchGoals.filter(g => g.teamId === match?.awayTeamId).length >= (awayScore || 0)}
-                        onChange={(_, opt: any) => onAddGoal(opt.player)}
-                        value={null}
-                    >
-                        {players.filter(p => p.teamId === match?.awayTeamId && presentPlayerIds.includes(p.id)).map(p => (
-                            <Select.Option key={p.id} value={p.id} player={p}>{p.name}</Select.Option>
-                        ))}
-                    </Select>
-                    <div style={{ maxHeight: 200, overflowY: 'auto', border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8 }}>
-                        <List
-                            size="small"
-                            dataSource={matchGoals.filter(g => g.teamId === match?.awayTeamId)}
-                            renderItem={g => (
-                                <List.Item actions={[<Button type="text" danger icon={<DeleteOutlined />} onClick={() => onRemoveGoal(g.id)} />]} style={{ padding: '4px 12px' }}>
-                                    <Text ellipsis style={{ maxWidth: '100%' }}>{g.playerName}</Text>
-                                </List.Item>
-                            )}
-                            locale={{ emptyText: <Text type="secondary" style={{ fontSize: 12 }}>Nenhum gol</Text> }}
-                        />
-                    </div>
-                </Col>
-            </Row>
-        </div>
-    );
+                {((homeScore || 0) > 0 || (awayScore || 0) > 0) && presentPlayerIds.length === 0 && (
+                    <Alert
+                        message="Dica: Para atribuir gols aos jogadores, não se esqueça de marcá-los como presentes na aba 'Lista de Presença'."
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                    />
+                )}
+
+                {(unassignedHome > 0 || unassignedAway > 0) && presentPlayerIds.length > 0 && (
+                    <Alert
+                        message={`Gols não atribuídos: ${unassignedHome > 0 ? `${unassignedHome} (${match?.homeTeam?.name})` : ''}${unassignedHome > 0 && unassignedAway > 0 ? ' e ' : ''}${unassignedAway > 0 ? `${unassignedAway} (${match?.awayTeam?.name})` : ''}`}
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                    />
+                )}
+
+                <Collapse accordion style={{ marginTop: 16 }} items={[
+                    {
+                        key: 'home',
+                        label: `Gols: ${match?.homeTeam?.name}`,
+                        children: (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
+                                {homePlayers.length === 1 && presentPlayerIds.length === 0 ? (
+                                    <Text type="secondary" style={{ fontSize: 12 }}>Marque jogadores na Lista de Presença primeiro.</Text>
+                                ) : (
+                                    homePlayers.map(p => {
+                                        const pGoals = matchGoals.filter(g => g.playerId === p.id).length;
+                                        const maxReached = matchGoals.filter(g => g.teamId === match?.homeTeamId).length >= (homeScore || 0);
+                                        return (
+                                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${pGoals > 0 ? token.colorPrimaryBorder : token.colorBorderSecondary}` }}>
+                                                <Text style={{ flex: 1, marginRight: 8, fontSize: 13, fontWeight: pGoals > 0 ? 500 : 400 }} ellipsis title={p.name}>{p.name}</Text>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <Button shape="circle" size="small" icon={<MinusOutlined style={{ fontSize: 10 }} />} onClick={() => handleGoalChange(p, pGoals - 1)} disabled={pGoals === 0} />
+                                                    <span style={{ fontWeight: 'bold', width: 16, textAlign: 'center', fontSize: 13, color: pGoals > 0 ? token.colorPrimary : token.colorText }}>{pGoals}</span>
+                                                    <Button shape="circle" size="small" icon={<PlusOutlined style={{ fontSize: 10 }} />} onClick={() => handleGoalChange(p, pGoals + 1)} disabled={maxReached} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )
+                    },
+                    {
+                        key: 'away',
+                        label: `Gols: ${match?.awayTeam?.name}`,
+                        children: (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
+                                {awayPlayers.length === 1 && presentPlayerIds.length === 0 ? (
+                                    <Text type="secondary" style={{ fontSize: 12 }}>Marque jogadores na Lista de Presença primeiro.</Text>
+                                ) : (
+                                    awayPlayers.map(p => {
+                                        const pGoals = matchGoals.filter(g => g.playerId === p.id).length;
+                                        const maxReached = matchGoals.filter(g => g.teamId === match?.awayTeamId).length >= (awayScore || 0);
+                                        return (
+                                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${pGoals > 0 ? token.colorPrimaryBorder : token.colorBorderSecondary}` }}>
+                                                <Text style={{ flex: 1, marginRight: 8, fontSize: 13, fontWeight: pGoals > 0 ? 500 : 400 }} ellipsis title={p.name}>{p.name}</Text>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <Button shape="circle" size="small" icon={<MinusOutlined style={{ fontSize: 10 }} />} onClick={() => handleGoalChange(p, pGoals - 1)} disabled={pGoals === 0} />
+                                                    <span style={{ fontWeight: 'bold', width: 16, textAlign: 'center', fontSize: 13, color: pGoals > 0 ? token.colorPrimary : token.colorText }}>{pGoals}</span>
+                                                    <Button shape="circle" size="small" icon={<PlusOutlined style={{ fontSize: 10 }} />} onClick={() => handleGoalChange(p, pGoals + 1)} disabled={maxReached} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )
+                    }
+                ]} />
+            </div>
+        );
+    };
 
     const renderDetailsTab = () => (
         <div style={{ marginTop: 16 }}>

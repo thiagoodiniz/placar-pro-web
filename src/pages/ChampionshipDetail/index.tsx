@@ -249,7 +249,7 @@ const ChampionshipDetailPage: React.FC = () => {
                 dateTime: values.dateTime?.toISOString(),
                 goals: matchGoals.map(g => ({
                     id: g.id,
-                    playerId: g.playerId,
+                    playerId: g.playerId?.startsWith('own-goal-') ? null : g.playerId,
                     teamId: g.teamId,
                     playerName: g.playerName,
                     teamName: g.teamName
