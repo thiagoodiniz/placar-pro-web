@@ -1364,7 +1364,7 @@ const ChampionshipDetailPage: React.FC = () => {
                     const hide = message.loading('Salvando confrontos...', 0);
                     try {
                         await api.post(`/championships/${id}/define-group-matches`, { matches });
-                        await Promise.all([fetchMatches(id!), fetchChampionship(id!)]);
+                        await Promise.all([fetchMatches(id!), fetchChampionship(id!), fetchStandings(id!), fetchScorers(id!)]);
                         hide();
                         message.success('Confrontos definidos com sucesso!');
                         setIsDefineMatchesModalOpen(false);

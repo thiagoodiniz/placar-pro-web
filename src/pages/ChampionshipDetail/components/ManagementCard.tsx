@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Button, Space, Tooltip, Tag } from 'antd';
+import { Card, Button, Space, Tooltip, Tag, Popconfirm } from 'antd';
 import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, EditOutlined, RollbackOutlined, OrderedListOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -100,11 +100,17 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
 
                 {championship.status === 'STARTED' && matches.length > 0 && user?.role === 'ADMIN' && (
                     <Space wrap>
-                        <Button
-                            type="default"
-                            onClick={onAutoResults}
-                            disabled={loading}
-                        >Inserir Placar Automático</Button>
+                        <Popconfirm
+                            title="Inserir placar automático"
+                            description="Tem certeza que deseja gerar resultados aleatórios para todos os jogos não finalizados?"
+                            onConfirm={onAutoResults}
+                            okText="Sim"
+                            cancelText="Não"
+                        >
+                            <Button type="default" disabled={loading}>
+                                Inserir Placar Automático
+                            </Button>
+                        </Popconfirm>
                         {championship.format === 'GROUPS_KNOCKOUT' && (
                             <Button
                                 icon={<OrderedListOutlined />}
