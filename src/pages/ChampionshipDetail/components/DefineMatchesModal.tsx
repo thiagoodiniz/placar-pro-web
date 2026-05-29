@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Tabs, Typography, Space, Avatar, message, Divider, theme } from 'antd';
-import { SwapOutlined, ThunderboltOutlined, CloseOutlined, UserOutlined } from '@ant-design/icons';
+import { Modal, Button, Tabs, Typography, Space, Avatar, message, Divider, theme, Tooltip } from 'antd';
+import { SwapOutlined, ThunderboltOutlined, CloseOutlined, UserOutlined, WarningOutlined } from '@ant-design/icons';
 import TeamPicker from './TeamPicker';
 
 const { Text } = Typography;
@@ -21,6 +21,7 @@ interface ExistingMatch {
     homeTeamId: string;
     awayTeamId: string;
     status: string;
+    hasScore: boolean;
 }
 
 interface GroupSetup {
@@ -284,14 +285,56 @@ const DefineMatchesModal: React.FC<DefineMatchesModalProps> = ({
             message.error('Defina todos os confrontos antes de salvar.');
             return;
         }
-        await onSave(
-            slots.map(s => ({
-                groupId: s.groupId,
-                homeTeamId: s.homeTeamId!,
-                awayTeamId: s.awayTeamId!,
-                round: s.round,
-            }))
+
+        const doSave = async () => {
+            await onSave(
+                slots.map(s => ({
+                    groupId: s.groupId,
+                    homeTeamId: s.homeTeamId!,
+                    awayTeamId: s.awayTeamId!,
+                    round: s.round,
+                }))
+            );
+        };
+
+        const matchesWithScore = setup.groups.flatMap(g =>
+            g.existingMatches.filter(m => m.hasScore).map(m => ({ ...m, groupId: g.groupId }))
         );
+
+        const lostMatches: string[] = [];
+        for (const em of matchesWithScore) {
+            const stillExists = slots.some(
+                s => s.groupId === em.groupId &&
+                     s.round === em.round &&
+                     ((s.homeTeamId === em.homeTeamId && s.awayTeamId === em.awayTeamId) ||
+                      (s.homeTeamId === em.awayTeamId && s.awayTeamId === em.homeTeamId))
+            );
+            if (!stillExists) {
+                const homeTeamName = getTeamInfo(em.groupId, em.homeTeamId)?.name || 'Time Excluído';
+                const awayTeamName = getTeamInfo(em.groupId, em.awayTeamId)?.name || 'Time Excluído';
+                lostMatches.push(`${homeTeamName} × ${awayTeamName} (Rodada ${em.round})`);
+            }
+        }
+
+        if (lostMatches.length > 0) {
+            Modal.confirm({
+                title: 'Confrontos com placar serão excluídos',
+                icon: <WarningOutlined style={{ color: token.colorWarning }} />,
+                content: (
+                    <div>
+                        <p>Os seguintes confrontos já têm placar lançado e serão <strong>excluídos permanentemente</strong> junto com seus gols:</p>
+                        <ul style={{ paddingLeft: 20, margin: '12px 0' }}>{lostMatches.map(m => <li key={m}>{m}</li>)}</ul>
+                        <p>Deseja continuar?</p>
+                    </div>
+                ),
+                okText: 'Sim, excluir e salvar',
+                okButtonProps: { danger: true },
+                cancelText: 'Cancelar',
+                onOk: () => doSave(),
+            });
+        } else {
+            await doSave();
+        }
     };
 
     const handleAutoGenerate = async () => {
@@ -349,6 +392,11 @@ const DefineMatchesModal: React.FC<DefineMatchesModalProps> = ({
                                     {groupSlots.map(slot => {
                                         const home = getTeamInfo(slot.groupId, slot.homeTeamId);
                                         const away = getTeamInfo(slot.groupId, slot.awayTeamId);
+                                        const originalMatchWithScore = group.existingMatches.find(em => 
+                                            em.round === slot.round && em.hasScore && slot.homeTeamId && slot.awayTeamId &&
+                                            ((em.homeTeamId === slot.homeTeamId && em.awayTeamId === slot.awayTeamId) ||
+                                             (em.homeTeamId === slot.awayTeamId && em.awayTeamId === slot.homeTeamId))
+                                        );
                                         return (
                                             <div
                                                 key={slot.index}
@@ -373,6 +421,11 @@ const DefineMatchesModal: React.FC<DefineMatchesModalProps> = ({
                                                 />
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                                                     <span style={{ fontWeight: 700, fontSize: 13, color: token.colorTextSecondary, userSelect: 'none' }}>×</span>
+                                                    {originalMatchWithScore && (
+                                                        <Tooltip title="Este confronto já tem placar lançado.">
+                                                            <WarningOutlined style={{ color: token.colorWarning, fontSize: 14 }} />
+                                                        </Tooltip>
+                                                    )}
                                                     <button
                                                         title="Inverter mandante/visitante"
                                                         onClick={() => handleSwap(slot.index)}
