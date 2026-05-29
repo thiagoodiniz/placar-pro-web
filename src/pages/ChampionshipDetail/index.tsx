@@ -1001,22 +1001,7 @@ const ChampionshipDetailPage: React.FC = () => {
                                     setSubmitting(false);
                                 }
                             }}
-                            onGenerateAllMatches={async () => {
-                                setSubmitting(true);
-                                const hide = message.loading('Sorteando confrontos...', 0);
-                                try {
-                                    await api.post(`/championships/${id}/generate-all-matches`);
-                                    await fetchMatches(id!);
-                                    hide();
-                                    message.success('Confrontos sorteados!');
-                                } catch (err) { 
-                                    console.error(err); 
-                                    hide();
-                                    message.error('Erro ao sortear confrontos');
-                                } finally {
-                                    setSubmitting(false);
-                                }
-                            }}
+
                             onDefineMatches={async () => {
                                 setLoadingMatchSetup(true);
                                 setIsDefineMatchesModalOpen(true);

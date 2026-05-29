@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
-import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined, EditOutlined, RollbackOutlined, OrderedListOutlined } from '@ant-design/icons';
+import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, EditOutlined, RollbackOutlined, OrderedListOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface ManagementCardProps {
@@ -18,7 +18,6 @@ interface ManagementCardProps {
     onStartNextPhase: () => void;
     onAutoResults: () => void;
     onAutoDistributeTeams: () => void;
-    onGenerateAllMatches: () => void;
     onDefineMatches: () => void;
     onRenameSeries?: () => void;
     canRollbackPhase: boolean;
@@ -42,7 +41,6 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     onStartNextPhase,
     onAutoResults,
     onAutoDistributeTeams,
-    onGenerateAllMatches,
     onDefineMatches,
     onRenameSeries,
     canRollbackPhase,

@@ -165,7 +165,6 @@ const DefineMatchesModal: React.FC<DefineMatchesModalProps> = ({
             const n = group.teams.length;
             const working = n % 2 !== 0 ? n + 1 : n;
             const numRounds = Math.max(working - 1, 1);
-            const matchesPerRound = working / 2;
             // real teams only (exclude BYE slot)
             const realMatchesPerRound = Math.floor(n / 2);
 
