@@ -41,6 +41,7 @@ import MatchResultModal from './components/MatchResultModal';
 import TeamPicker from './components/TeamPicker';
 import NextPhaseModal from './components/NextPhaseModal';
 import CreateParallelMatchesModal from './components/CreateParallelMatchesModal';
+import DefineMatchesModal from './components/DefineMatchesModal';
 
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -81,6 +82,9 @@ const ChampionshipDetailPage: React.FC = () => {
     const [selectedMatch, setSelectedMatch] = useState<any>(null);
     const [selectedGroup, setSelectedGroup] = useState<any>(null);
     const [matchGoals, setMatchGoals] = useState<any[]>([]);
+    const [isDefineMatchesModalOpen, setIsDefineMatchesModalOpen] = useState(false);
+    const [matchSetup, setMatchSetup] = useState<any>(null);
+    const [loadingMatchSetup, setLoadingMatchSetup] = useState(false);
     const initializedRef = React.useRef<string | null>(null);
 
     // Forms
@@ -1013,6 +1017,20 @@ const ChampionshipDetailPage: React.FC = () => {
                                     setSubmitting(false);
                                 }
                             }}
+                            onDefineMatches={async () => {
+                                setLoadingMatchSetup(true);
+                                setIsDefineMatchesModalOpen(true);
+                                try {
+                                    const res = await api.get(`/championships/${id}/match-setup`);
+                                    setMatchSetup(res.data);
+                                } catch (err) {
+                                    console.error(err);
+                                    message.error('Erro ao carregar configuração de confrontos');
+                                    setIsDefineMatchesModalOpen(false);
+                                } finally {
+                                    setLoadingMatchSetup(false);
+                                }
+                            }}
                             onRenameSeries={user?.role === 'ADMIN' ? () => {
                                 const current = getBracketLabels(championship);
                                 renameLabelsForm.setFieldsValue({
@@ -1345,6 +1363,54 @@ const ChampionshipDetailPage: React.FC = () => {
                     </Form.Item>
                 </Form>
             </Modal>
+
+            <DefineMatchesModal
+                open={isDefineMatchesModalOpen}
+                onClose={() => {
+                    setIsDefineMatchesModalOpen(false);
+                    setMatchSetup(null);
+                }}
+                championshipId={id!}
+                setup={matchSetup}
+                loadingSetup={loadingMatchSetup}
+                confirmLoading={submitting}
+                onSave={async (matches) => {
+                    setSubmitting(true);
+                    const hide = message.loading('Salvando confrontos...', 0);
+                    try {
+                        await api.post(`/championships/${id}/define-group-matches`, { matches });
+                        await Promise.all([fetchMatches(id!), fetchChampionship(id!)]);
+                        hide();
+                        message.success('Confrontos definidos com sucesso!');
+                        setIsDefineMatchesModalOpen(false);
+                        setMatchSetup(null);
+                    } catch (err: any) {
+                        console.error(err);
+                        hide();
+                        message.error(err?.response?.data?.error || 'Erro ao salvar confrontos');
+                    } finally {
+                        setSubmitting(false);
+                    }
+                }}
+                onAutoGenerate={async () => {
+                    setSubmitting(true);
+                    const hide = message.loading('Sorteando confrontos automaticamente...', 0);
+                    try {
+                        await api.post(`/championships/${id}/generate-all-matches`);
+                        await fetchMatches(id!);
+                        hide();
+                        message.success('Confrontos sorteados!');
+                        setIsDefineMatchesModalOpen(false);
+                        setMatchSetup(null);
+                    } catch (err) {
+                        console.error(err);
+                        hide();
+                        message.error('Erro ao sortear confrontos');
+                    } finally {
+                        setSubmitting(false);
+                    }
+                }}
+            />
         </div>
     );
 };

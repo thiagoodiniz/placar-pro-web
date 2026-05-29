@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Space, Tooltip, Tag } from 'antd';
-import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined, EditOutlined, RollbackOutlined } from '@ant-design/icons';
+import { TeamOutlined, TrophyOutlined, PlayCircleOutlined, DeleteOutlined, ThunderboltOutlined, EditOutlined, RollbackOutlined, OrderedListOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface ManagementCardProps {
@@ -19,6 +19,7 @@ interface ManagementCardProps {
     onAutoResults: () => void;
     onAutoDistributeTeams: () => void;
     onGenerateAllMatches: () => void;
+    onDefineMatches: () => void;
     onRenameSeries?: () => void;
     canRollbackPhase: boolean;
     currentPhaseName: string;
@@ -42,6 +43,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
     onAutoResults,
     onAutoDistributeTeams,
     onGenerateAllMatches,
+    onDefineMatches,
     onRenameSeries,
     canRollbackPhase,
     onRollbackPhase,
@@ -71,11 +73,11 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                         {allGroupsComplete && (
                             <Button
                                 type="primary"
-                                icon={<ThunderboltOutlined />}
-                                onClick={onGenerateAllMatches}
+                                icon={<OrderedListOutlined />}
+                                onClick={onDefineMatches}
                                 disabled={loading || championship.teams?.length === 0}
                             >
-                                Sortear Confrontos
+                                Definir Confrontos
                             </Button>
                         )}
                         {allGroupsComplete && matches.length > 0 && (
@@ -105,6 +107,15 @@ const ManagementCard: React.FC<ManagementCardProps> = ({
                             onClick={onAutoResults}
                             disabled={loading}
                         >Inserir Placar Automático</Button>
+                        {championship.format === 'GROUPS_KNOCKOUT' && (
+                            <Button
+                                icon={<OrderedListOutlined />}
+                                onClick={onDefineMatches}
+                                disabled={loading}
+                            >
+                                Editar Confrontos
+                            </Button>
+                        )}
                         {onRenameSeries && (
                             <Button
                                 icon={<EditOutlined />}
