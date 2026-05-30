@@ -107,8 +107,8 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
     const handleFormFinish = (values: any) => {
         onFinish({
             ...values,
-            homeScore: values.homeScore ?? 0,
-            awayScore: values.awayScore ?? 0,
+            homeScore: values.homeScore ?? null,
+            awayScore: values.awayScore ?? null,
             presences: presentPlayerIds
         });
     };
@@ -246,23 +246,28 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
         );
     };
 
-    const StepperInput = ({ value, onChange }: { value?: number, onChange?: (v: number) => void }) => {
-        const val = value || 0;
+    const StepperInput = ({ value, onChange }: { value?: number | null, onChange?: (v: number | null) => void }) => {
+        const isNull = value === null || value === undefined;
+        const val = isNull ? null : value;
         return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
                 <Button 
                     shape="circle" 
                     icon={<MinusOutlined />} 
-                    onClick={() => onChange?.(Math.max(0, val - 1))} 
+                    onClick={() => {
+                        if (isNull) return; // already null, can't go lower
+                        onChange?.(val === 0 ? null : Math.max(0, val! - 1));
+                    }}
+                    disabled={isNull}
                     size="large"
                 />
-                <div style={{ fontSize: 28, fontWeight: 'bold', width: 40, textAlign: 'center', lineHeight: 1 }}>
-                    {val}
+                <div style={{ fontSize: 28, fontWeight: 'bold', width: 40, textAlign: 'center', lineHeight: 1, color: isNull ? token.colorTextQuaternary : token.colorText }}>
+                    {isNull ? '–' : val}
                 </div>
                 <Button 
                     shape="circle" 
                     icon={<PlusOutlined />} 
-                    onClick={() => onChange?.(val + 1)} 
+                    onClick={() => onChange?.(isNull ? 0 : val! + 1)} 
                     size="large"
                 />
             </div>
@@ -288,8 +293,11 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
     const renderScoreTab = () => {
         const assignedHome = matchGoals.filter(g => g.teamId === match?.homeTeamId).length;
         const assignedAway = matchGoals.filter(g => g.teamId === match?.awayTeamId).length;
-        const unassignedHome = Math.max(0, (homeScore || 0) - assignedHome);
-        const unassignedAway = Math.max(0, (awayScore || 0) - assignedAway);
+        const homeScoreNum = homeScore ?? null;
+        const awayScoreNum = awayScore ?? null;
+        const bothScoresSet = homeScoreNum !== null && awayScoreNum !== null;
+        const unassignedHome = bothScoresSet ? Math.max(0, homeScoreNum! - assignedHome) : 0;
+        const unassignedAway = bothScoresSet ? Math.max(0, awayScoreNum! - assignedAway) : 0;
 
         const homePlayers = players
             .filter(p => p.teamId === match?.homeTeamId && presentPlayerIds.includes(p.id))
@@ -333,7 +341,7 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                     </div>
                 </div>
 
-                {match?.phase && match?.phase !== 'GROUP' && homeScore === awayScore && homeScore !== undefined && homeScore !== null && (
+                {bothScoresSet && match?.phase && match?.phase !== 'GROUP' && homeScoreNum === awayScoreNum && (
                     <div style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarning}50`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
                         <Text strong style={{ color: '#fa8c16', display: 'block', textAlign: 'center', marginBottom: 12 }}>Empate! Resultado dos Pênaltis:</Text>
                         <div style={{
@@ -363,7 +371,7 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                     </div>
                 )}
 
-                {((homeScore || 0) > 0 || (awayScore || 0) > 0) && presentPlayerIds.length === 0 && (
+                {bothScoresSet && (homeScoreNum! > 0 || awayScoreNum! > 0) && presentPlayerIds.length === 0 && (
                     <Alert
                         message="Dica: Para atribuir gols aos jogadores, não se esqueça de marcá-los como presentes na aba 'Lista de Presença'."
                         type="info"
@@ -372,7 +380,7 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                     />
                 )}
 
-                {(unassignedHome > 0 || unassignedAway > 0) && presentPlayerIds.length > 0 && (
+                {bothScoresSet && (unassignedHome > 0 || unassignedAway > 0) && presentPlayerIds.length > 0 && (
                     <Alert
                         message={`Gols não atribuídos: ${unassignedHome > 0 ? `${unassignedHome} (${match?.homeTeam?.name})` : ''}${unassignedHome > 0 && unassignedAway > 0 ? ' e ' : ''}${unassignedAway > 0 ? `${unassignedAway} (${match?.awayTeam?.name})` : ''}`}
                         type="warning"
@@ -392,7 +400,7 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                                 ) : (
                                     homePlayers.map(p => {
                                         const pGoals = matchGoals.filter(g => g.playerId === p.id).length;
-                                        const maxReached = matchGoals.filter(g => g.teamId === match?.homeTeamId).length >= (homeScore || 0);
+                                        const maxReached = bothScoresSet && matchGoals.filter(g => g.teamId === match?.homeTeamId).length >= homeScoreNum!;
                                         return (
                                             <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${pGoals > 0 ? token.colorPrimaryBorder : token.colorBorderSecondary}` }}>
                                                 <Text style={{ flex: 1, marginRight: 8, fontSize: 13, fontWeight: pGoals > 0 ? 500 : 400 }} ellipsis title={p.name}>{p.name}</Text>
@@ -418,7 +426,7 @@ const MatchResultModal: React.FC<MatchEditModalProps> = ({
                                 ) : (
                                     awayPlayers.map(p => {
                                         const pGoals = matchGoals.filter(g => g.playerId === p.id).length;
-                                        const maxReached = matchGoals.filter(g => g.teamId === match?.awayTeamId).length >= (awayScore || 0);
+                                        const maxReached = bothScoresSet && matchGoals.filter(g => g.teamId === match?.awayTeamId).length >= awayScoreNum!;
                                         return (
                                             <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${pGoals > 0 ? token.colorPrimaryBorder : token.colorBorderSecondary}` }}>
                                                 <Text style={{ flex: 1, marginRight: 8, fontSize: 13, fontWeight: pGoals > 0 ? 500 : 400 }} ellipsis title={p.name}>{p.name}</Text>
