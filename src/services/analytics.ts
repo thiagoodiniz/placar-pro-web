@@ -22,6 +22,7 @@ export const initAnalytics = () => {
     if (POSTHOG_KEY && POSTHOG_HOST) {
         posthog.init(POSTHOG_KEY, {
             api_host: POSTHOG_HOST,
+            ui_host: 'https://us.posthog.com',
             autocapture: true,
             // Opt out if on localhost OR if user is in blocklist
             opt_out_capturing_by_default: isLocalhost || isBlocked,
